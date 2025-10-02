@@ -56,16 +56,22 @@ class Fetch extends Module {
 
   switch (inst(6,0)) {
     is ("b0110111".U) {
+      // U type
       // LUI
     }
     is ("b0010111".U) {
+      // U type
       // AUIPC
     }
     is ("b1101111".U) {
+      // J type
       // JAL
     }
     is ("b1100111".U) {
+      // I type
       // JALR
+      
+      // B type
       // BEQ
       // BNE
       // BLT
@@ -74,6 +80,7 @@ class Fetch extends Module {
       // BGEU
     }
     is ("b0000011".U) {
+      // I type
       // LB
       // LH
       // LW
@@ -81,22 +88,39 @@ class Fetch extends Module {
       // LHU
     }
     is ("b0100011".U) {
+      // S type
       // SB
       // SH
       // SW
     }
     is ("b0010011".U) {
-      // ADDI
-      // SLTI
-      // SLTIU
-      // XORI
-      // ORI
-      // ANDI
-      // SLLI
-      // SRLI
-      // SRAI
+      // I type
+      io.src1 := i_src1
+      io.dest := i_dest
+
+      when (i_funct3 == "b001".U || i_funct3 == "b101".U) {
+        // SLLI
+        // SRLI
+        // SRAI
+        io.imm := i_imm1(4, 0).U
+      } .otherwise {
+        // ADDI
+        // SLTI
+        // SLTIU
+        // XORI
+        // ORI
+        // ANDI
+        io.imm := i_imm1.S
+      }
+
+      io.alu_op := Cat(i_funct7(10), i_funct3)
     }
     is ("b0110011".U) {
+      // R type
+      io.src1 := r_src1
+      io.src2 := r_src2
+      io.dest := r_dest
+
       // ADD
       // SUB
       // SLL
@@ -106,15 +130,20 @@ class Fetch extends Module {
       // SRL
       // OR
       // AND
+      io.alu_op := Cat(r_funct7(5), r_funct3)
     }
     is ("b0001111".U) {
+      // I type
       // FENCE
       // FENCE.TSO
       // PAUSE
+      assert(false, "Unimplemented instruction")
     }
     is ("b1110011".U) {
+      // I type
       // ECALL
       // EBREAK
+      assert(false, "Unimplemented instruction")
     }
   }
 }
