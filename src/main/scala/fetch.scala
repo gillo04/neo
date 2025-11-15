@@ -98,11 +98,12 @@ class Fetch extends Module {
       io.src1 := i_src1
       io.dest := i_dest
 
-      when (i_funct3 == "b001".U || i_funct3 == "b101".U) {
+      when (i_funct3 === "b001".U || i_funct3 === "b101".U) {
         // SLLI
         // SRLI
         // SRAI
-        io.imm := i_imm1(4, 0).U
+        io.imm := i_imm1(4, 0)
+        io.alu_op := Cat(i_imm1(10), i_funct3)
       } .otherwise {
         // ADDI
         // SLTI
@@ -110,10 +111,9 @@ class Fetch extends Module {
         // XORI
         // ORI
         // ANDI
-        io.imm := i_imm1.S
+        io.imm := i_imm1.asSInt
+        io.alu_op := Cat(0.U(1.W), i_funct3)
       }
-
-      io.alu_op := Cat(i_funct7(10), i_funct3)
     }
     is ("b0110011".U) {
       // R type
