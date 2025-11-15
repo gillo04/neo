@@ -6,12 +6,13 @@ class Fetch extends Module {
     val src1 = Output(UInt(5.W))
     val src2 = Output(UInt(5.W))
     val dest = Output(UInt(5.W))
-    val imm =  Output(UInt(64.W))
+    val imm =  Output(UInt(32.W))
 
     val alu_op = Output(UInt(4.W))
   })
 
   val inst = Wire(UInt(32.W))
+  val pc = Wire(UInt(32.W))
 
   io.src1 := 0.U
   io.src2 := 0.U
@@ -58,10 +59,16 @@ class Fetch extends Module {
     is ("b0110111".U) {
       // U type
       // LUI
+      io.dest := u_dest
+      io.imm(31, 12) := u_imm1
     }
     is ("b0010111".U) {
       // U type
       // AUIPC
+      val offset = 0.U(32.W)
+      offset(31, 12) := u_imm1
+      io.dest := u_dest
+      io.imm := u_imm1 + pc
     }
     is ("b1101111".U) {
       // J type
@@ -86,12 +93,14 @@ class Fetch extends Module {
       // LW
       // LBU
       // LHU
+      assert(false, "Unimplemented instruction")
     }
     is ("b0100011".U) {
       // S type
       // SB
       // SH
       // SW
+      assert(false, "Unimplemented instruction")
     }
     is ("b0010011".U) {
       // I type

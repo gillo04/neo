@@ -3,11 +3,11 @@ import chisel3.util._
 
 class Alu extends Module {
   val io = IO(new Bundle{
-    val src1 =  Input(UInt(64.W))
-    val src2 =  Input(UInt(64.W))
+    val src1 =  Input(UInt(32.W))
+    val src2 =  Input(UInt(32.W))
     val op =    Input(UInt(4.W))
 
-    val dest = Output(UInt(64.W))
+    val dest = Output(UInt(32.W))
   })
 
   io.dest := 0.U
@@ -18,7 +18,7 @@ class Alu extends Module {
     }
     is ("b0001".U) {
       // Sll
-      io.dest := io.src1 << io.src2(5,0)
+      io.dest := io.src1 << io.src2(4,0)
     }
     is ("b0010".U) {
       // Slt
@@ -34,7 +34,7 @@ class Alu extends Module {
     }
     is ("b0101".U) {
       // Srl
-      io.dest := io.src1 >> io.src2(5,0)
+      io.dest := io.src1 >> io.src2(4,0)
     }
     is ("b0110".U) {
       // Or
@@ -50,7 +50,7 @@ class Alu extends Module {
     }
     is ("b1101".U) {
       // Sra
-      io.dest := (io.src1.asSInt >> io.src2(5,0)).asUInt
+      io.dest := (io.src1.asSInt >> io.src2(4,0)).asUInt
     }
   }
 }
