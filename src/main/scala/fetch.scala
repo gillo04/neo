@@ -3,22 +3,51 @@ import chisel3.util._
 
 class Fetch extends Module {
   val io = IO(new Bundle{
-    val src1 = Output(UInt(5.W))
-    val src2 = Output(UInt(5.W))
-    val dest = Output(UInt(5.W))
-    val imm =  Output(UInt(32.W))
+    // Icache
+    val inst_in = Input(UInt(32.W))
+    val pc =      Output(UInt(32.W))
 
-    val alu_op = Output(UInt(4.W))
+    // Hazard unit
+    val hu_src1 =    Output(UInt(5.W))
+    val hu_src2 =    Output(UInt(5.W))
+    val stall =   Input(Bool())
+
+    // Foreward
+    val src1 =    Output(UInt(5.W))
+    val src2 =    Output(UInt(5.W))
+    val dest =    Output(UInt(5.W))
+    val imm =     Output(UInt(32.W))
+    val alu_op =  Output(UInt(4.W))
+    val imm_mux = Output(Bool())
+    val mem_mux = Output(Bool())
+
   })
 
-  val inst = Wire(UInt(32.W))
-  val pc = Wire(UInt(32.W))
+  // instruction and program counter
+  val pc = RegInit(0.U(32.W))
+  val inst = RegInit(0.U(32.W))
 
-  io.src1 := 0.U
-  io.src2 := 0.U
+  // Don't advance when stalling
+  when (!io.stall) {
+    pc := pc + 1.U
+    inst := io.inst_in
+  }
+  io.pc := pc
+
+  // Instruction decoding
+  val src1 = Wire(UInt(5.W))
+  val src2 = Wire(UInt(5.W))
+  src1 := 0.U
+  src2 := 0.U
+  io.hu_src1 := src1
+  io.hu_src2 := src2
+  io.src1 := src1
+  io.src2 := src2
   io.dest := 0.U
   io.imm := 0.U
   io.alu_op := 0.U
+  io.imm_mux := false.B
+  io.mem_mux := false.B
 
   // R-type
   val r_funct7 = inst(31,25)
@@ -60,15 +89,17 @@ class Fetch extends Module {
       // U type
       // LUI
       io.dest := u_dest
-      io.imm(31, 12) := u_imm1
+      io.imm := Cat(u_imm1, 0.U(12.W))
+      io.imm_mux := true.B
+      io.mem_mux := true.B
     }
     is ("b0010111".U) {
       // U type
       // AUIPC
-      val offset = 0.U(32.W)
-      offset(31, 12) := u_imm1
       io.dest := u_dest
-      io.imm := u_imm1 + pc
+      io.imm := Cat(u_imm1, 0.U(12.W)) + pc
+      io.imm_mux := true.B
+      io.mem_mux := true.B
     }
     is ("b1101111".U) {
       // J type
@@ -93,19 +124,19 @@ class Fetch extends Module {
       // LW
       // LBU
       // LHU
-      assert(false, "Unimplemented instruction")
     }
     is ("b0100011".U) {
       // S type
       // SB
       // SH
       // SW
-      assert(false, "Unimplemented instruction")
     }
     is ("b0010011".U) {
       // I type
-      io.src1 := i_src1
+      src1 := i_src1
       io.dest := i_dest
+      io.imm_mux := true.B
+      io.mem_mux := true.B
 
       when (i_funct3 === "b001".U || i_funct3 === "b101".U) {
         // SLLI
@@ -120,15 +151,18 @@ class Fetch extends Module {
         // XORI
         // ORI
         // ANDI
-        io.imm := i_imm1.asSInt
+        val tmp = Wire(SInt(32.W))
+        tmp := i_imm1.asSInt
+        io.imm := tmp.asUInt
         io.alu_op := Cat(0.U(1.W), i_funct3)
       }
     }
     is ("b0110011".U) {
       // R type
-      io.src1 := r_src1
-      io.src2 := r_src2
+      src1 := r_src1
+      src2 := r_src2
       io.dest := r_dest
+      io.mem_mux := true.B
 
       // ADD
       // SUB
@@ -146,13 +180,19 @@ class Fetch extends Module {
       // FENCE
       // FENCE.TSO
       // PAUSE
-      assert(false, "Unimplemented instruction")
     }
     is ("b1110011".U) {
       // I type
       // ECALL
       // EBREAK
-      assert(false, "Unimplemented instruction")
     }
+  }
+
+
+  // When stalling ensure to issue nops and to keep the HU clear
+  when (io.stall) {
+    io.dest := 0.U
+    io.src1 := 0.U
+    io.src2 := 0.U
   }
 }

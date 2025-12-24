@@ -57,22 +57,22 @@ class AluTest extends AnyFreeSpec with Matchers with ChiselSim {
       c.clock.step()
 
       // Sra
-      c.io.src1.poke("b1111111111111111111111111111111111111111111111111111111111111110".U)
+      c.io.src1.poke("b11111111111111111111111111111110".U)
       c.io.src2.poke(1.U)
       c.io.op.poke("b1101".U)
-      c.io.dest.expect("b1111111111111111111111111111111111111111111111111111111111111111".U)
+      c.io.dest.expect("b11111111111111111111111111111111".U)
       c.clock.step()
 
       // Slt
       c.io.src1.poke(5.U)
-      c.io.src2.poke((-10).S(64.W).asUInt)
+      c.io.src2.poke((-10).S(32.W).asUInt)
       c.io.op.poke("b0010".U)
       c.io.dest.expect(0.U)
       c.clock.step()
 
       // Sltu
       c.io.src1.poke(5.U)
-      c.io.src2.poke((-10).S(64.W).asUInt)
+      c.io.src2.poke((-10).S(32.W).asUInt)
       c.io.op.poke("b0011".U)
       c.io.dest.expect(1.U)
       c.clock.step()
