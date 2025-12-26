@@ -1,5 +1,5 @@
-# Simple instruction test
-# a0 = 42 + 100
+# Alu test with dependency
+# a1 = 42 + 100
 
 .section .text
 .globl _start

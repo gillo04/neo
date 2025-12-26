@@ -10,6 +10,7 @@ class Fetch extends Module {
     // Hazard unit
     val hu_src1 =    Output(UInt(5.W))
     val hu_src2 =    Output(UInt(5.W))
+    val hu_flags =    Output(UInt(5.W))
     val stall =   Input(Bool())
 
     // Foreward
@@ -20,6 +21,7 @@ class Fetch extends Module {
     val alu_op =  Output(UInt(4.W))
     val imm_mux = Output(Bool())
     val mem_mux = Output(Bool())
+    val flags_d = Output(Bool())      // Depends on the flags
 
   })
 
@@ -41,6 +43,8 @@ class Fetch extends Module {
   src2 := 0.U
   io.hu_src1 := src1
   io.hu_src2 := src2
+  io.hu_flags := false.B
+
   io.src1 := src1
   io.src2 := src2
   io.dest := 0.U
@@ -48,6 +52,7 @@ class Fetch extends Module {
   io.alu_op := 0.U
   io.imm_mux := false.B
   io.mem_mux := false.B
+  io.flags_d := false.B
 
   // R-type
   val r_funct7 = inst(31,25)
@@ -137,6 +142,7 @@ class Fetch extends Module {
       io.dest := i_dest
       io.imm_mux := true.B
       io.mem_mux := true.B
+      io.flags_d := true.B
 
       when (i_funct3 === "b001".U || i_funct3 === "b101".U) {
         // SLLI
@@ -163,6 +169,7 @@ class Fetch extends Module {
       src2 := r_src2
       io.dest := r_dest
       io.mem_mux := true.B
+      io.flags_d := true.B
 
       // ADD
       // SUB
@@ -188,11 +195,14 @@ class Fetch extends Module {
     }
   }
 
-
   // When stalling ensure to issue nops and to keep the HU clear
   when (io.stall) {
     io.dest := 0.U
     io.src1 := 0.U
     io.src2 := 0.U
+    io.alu_op := 0.U
+    io.imm_mux := false.B
+    io.mem_mux := false.B
+    io.flags_d := false.B
   }
 }

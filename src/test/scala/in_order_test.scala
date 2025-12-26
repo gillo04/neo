@@ -22,7 +22,7 @@ class InOrderTest extends AnyFreeSpec with Matchers with ChiselSim {
     return instructions
   }
 
-  "Test00" in {
+  "0: Addition with dependencies" in {
     // Load instructions from file
     val instruction_cache = instructionsFromFile("./test_files/test00.bin")
     val expected_a0 = Seq(0.U,  0.U,  0.U,  0.U,  42.U,   42.U,   42.U,   42.U,   42.U,  42.U)
