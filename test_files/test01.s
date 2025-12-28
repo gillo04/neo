@@ -1,5 +1,4 @@
 # Uncontitional jump foreward and backwards
-# a1 = 42 + 100
 
 .section .text
 .globl _start

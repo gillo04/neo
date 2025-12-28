@@ -37,6 +37,8 @@ class Fetch extends Module {
   val jmp_dest = Wire(SInt(32.W)) // Calculated later
   val next_pc = Wire(UInt(32.W))
   next_pc := Mux(jmp_mux, jmp_dest.asUInt, pc)
+  val this_pc = RegNext(pc, 0.U) // The pc of the instruction currently in ir
+  this_pc := pc
 
   // Don't advance when stalling
   when (!io.stall) {
@@ -100,7 +102,7 @@ class Fetch extends Module {
   val j_imm3 = inst(19,12)
   val j_imm4 = inst(31)
   val j_dest = inst(11,7)
-  jmp_dest := Cat(Seq(j_imm4, j_imm3, j_imm2, j_imm1, 0.U(1.W))).asSInt + pc.asSInt - 4.S // ERROR Because pc already points to the next inst
+  jmp_dest := Cat(Seq(j_imm4, j_imm3, j_imm2, j_imm1, 0.U(1.W))).asSInt + this_pc.asSInt
 
   io.debug := 0.U
   switch (inst(6,0)) {
@@ -126,14 +128,13 @@ class Fetch extends Module {
       jmp_mux := true.B
 
       // Issue add rd, x0, new_pc
-      io.imm := jmp_dest.asUInt
+      io.imm := this_pc
       src1 := 0.U
       io.dest := j_dest
       io.imm_mux := true.B
       io.mem_mux := true.B
       io.alu_op := 0.U
 
-      io.debug := 1.U
     }
     is ("b1100111".U) {
       // I type
@@ -169,8 +170,6 @@ class Fetch extends Module {
       io.mem_mux := true.B
       io.flags_d := true.B
 
-      io.debug := 2.U
-
       when (i_funct3 === "b001".U || i_funct3 === "b101".U) {
         // SLLI
         // SRLI
@@ -198,7 +197,6 @@ class Fetch extends Module {
       io.mem_mux := true.B
       io.flags_d := true.B
 
-      io.debug := 3.U
       // ADD
       // SUB
       // SLL
