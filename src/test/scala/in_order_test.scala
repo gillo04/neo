@@ -29,13 +29,11 @@ class InOrderTest extends AnyFreeSpec with Matchers with ChiselSim {
     val expected_a1 = Seq(0.U,  0.U,  0.U,  0.U,  0.U,    100.U,  100.U,  100.U,  142.U, 142.U)
 
     simulate(new InOrder) { c =>
-
-      // Wait 4 cycles
       for (i <- 0 until expected_a0.size) {
         // Fetch instruction
-        val pc = c.io.pc.peek().litValue.toInt
+        val pc = c.io.pc.peek().litValue.toInt/4
         if (pc < instruction_cache.size) {
-          c.io.inst_in.poke(instruction_cache(pc).U)
+          c.io.inst_in.poke(instruction_cache(pc).S(32.W).asUInt)
         } else {
           c.io.inst_in.poke(0.U)
         }
@@ -47,6 +45,31 @@ class InOrderTest extends AnyFreeSpec with Matchers with ChiselSim {
         c.io.rf(11).expect(expected_a1(i))
       }
 
+    }
+  }
+
+  "1: Unconditional branching" in {
+    // Load instructions from file
+    val instruction_cache = instructionsFromFile("./test_files/test01.bin")
+    val expected_a4 = Seq(0.U,    0.U,    0.U,    0.U,    0.U,    0.U,  0.U,  0.U,  0.U,  
+                          11.U,   11.U,   11.U,   111.U,  111.U,  111.U, 
+                          1111.U, 1111.U, 1111.U, 1111.U, 1111.U, 1111.U)
+
+    simulate(new InOrder) { c =>
+      for (i <- 0 until expected_a4.size) {
+        // Fetch instruction
+        val pc = c.io.pc.peek().litValue.toInt/4
+        if (pc < instruction_cache.size) {
+          c.io.inst_in.poke(instruction_cache(pc).S(32.W).asUInt)
+        } else {
+          c.io.inst_in.poke(0.U)
+        }
+
+        // Step the clock
+        c.clock.step()
+        // println(f"pc:${c.io.pc.peek().litValue/4}\td:${c.io.debug.peek().litValue}\ts:${c.io.stall.peek()}\ta0: ${c.io.rf(10).peek().litValue}\ta1: ${c.io.rf(11).peek().litValue}\ta2: ${c.io.rf(12).peek().litValue}\ta3: ${c.io.rf(13).peek().litValue}\ta4: ${c.io.rf(14).peek().litValue}")
+        c.io.rf(14).expect(expected_a4(i))
+      }
     }
   }
 }

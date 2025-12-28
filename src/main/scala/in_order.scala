@@ -22,6 +22,8 @@ class InOrder extends Module {
     val s1_p2 =   Output(UInt(32.W))
     val s2_p2 =   Output(UInt(32.W))
     val rd_p2 =   Output(UInt(5.W))
+
+    val debug =   Output(UInt(32.W))
   })
 
   val fetch = Module(new Fetch)
@@ -98,4 +100,7 @@ class InOrder extends Module {
   io.s1_p2 := s1_p2
   io.s2_p2 := res_p2
   io.rd_p2 := rd_p2
+
+  io.debug := fetch.io.debug
+  io.stall := hu.io.stall
 }

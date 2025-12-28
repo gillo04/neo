@@ -23,18 +23,27 @@ class Fetch extends Module {
     val mem_mux = Output(Bool())
     val flags_d = Output(Bool())      // Depends on the flags
 
+    // Debug
+    val debug = Output(UInt(32.W))
   })
 
   // instruction and program counter
   val pc = RegInit(0.U(32.W))
   val inst = RegInit(0.U(32.W))
 
+  // Calculate next pc
+  val jmp_mux = Wire(Bool())
+  jmp_mux := false.B
+  val jmp_dest = Wire(SInt(32.W)) // Calculated later
+  val next_pc = Wire(UInt(32.W))
+  next_pc := Mux(jmp_mux, jmp_dest.asUInt, pc)
+
   // Don't advance when stalling
   when (!io.stall) {
-    pc := pc + 1.U
+    pc := next_pc + 4.U
     inst := io.inst_in
   }
-  io.pc := pc
+  io.pc := next_pc
 
   // Instruction decoding
   val src1 = Wire(UInt(5.W))
@@ -86,9 +95,14 @@ class Fetch extends Module {
   val u_dest = inst(11,7)
 
   // J-type
-  val j_imm1 = inst(31,12)
+  val j_imm1 = inst(30,21)
+  val j_imm2 = inst(20)
+  val j_imm3 = inst(19,12)
+  val j_imm4 = inst(31)
   val j_dest = inst(11,7)
+  jmp_dest := Cat(Seq(j_imm4, j_imm3, j_imm2, j_imm1, 0.U(1.W))).asSInt + pc.asSInt - 4.S // ERROR Because pc already points to the next inst
 
+  io.debug := 0.U
   switch (inst(6,0)) {
     is ("b0110111".U) {
       // U type
@@ -109,6 +123,17 @@ class Fetch extends Module {
     is ("b1101111".U) {
       // J type
       // JAL
+      jmp_mux := true.B
+
+      // Issue add rd, x0, new_pc
+      io.imm := jmp_dest.asUInt
+      src1 := 0.U
+      io.dest := j_dest
+      io.imm_mux := true.B
+      io.mem_mux := true.B
+      io.alu_op := 0.U
+
+      io.debug := 1.U
     }
     is ("b1100111".U) {
       // I type
@@ -144,6 +169,8 @@ class Fetch extends Module {
       io.mem_mux := true.B
       io.flags_d := true.B
 
+      io.debug := 2.U
+
       when (i_funct3 === "b001".U || i_funct3 === "b101".U) {
         // SLLI
         // SRLI
@@ -171,6 +198,7 @@ class Fetch extends Module {
       io.mem_mux := true.B
       io.flags_d := true.B
 
+      io.debug := 3.U
       // ADD
       // SUB
       // SLL

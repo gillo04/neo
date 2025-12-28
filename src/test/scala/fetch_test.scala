@@ -9,7 +9,7 @@ class FetchTest extends AnyFreeSpec with Matchers with ChiselSim {
     simulate(new Fetch) { c =>
       c.io.inst_in.poke(0.U)
       for (i <- 0 until 10) {
-        c.io.pc.expect(i.U)
+        c.io.pc.expect((i * 4).U)
         c.clock.step()
       }
     }
