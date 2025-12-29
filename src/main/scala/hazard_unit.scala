@@ -6,13 +6,12 @@ class HazardUnit extends Module {
     // From fetch
     val src1 =    Input(UInt(5.W))
     val src2 =    Input(UInt(5.W))
-    val fd =      Input(UInt(5.W))  // Depends on flags
 
     // From pipeline
     val rd_p0 =   Input(UInt(5.W))
-    val fd_p0 =   Input(Bool())
+    val alu_p0 =   Input(Bool())
     val rd_p1 =   Input(UInt(5.W))
-    val fd_p1 =   Input(Bool())
+    val alu_p1 =   Input(Bool())
 
     val stall =   Output(Bool())
   })
@@ -27,5 +26,5 @@ class HazardUnit extends Module {
 
   // When calculationg the stall, ignore register x0 => it's always available
   io.stall := Seq.tabulate(31)(i => i).foldLeft(false.B)((x, y) => x | overlap_mask(y + 1)) |
-              io.fd & (io.fd_p0 | io.fd_p1)
+              io.alu_p0
 }

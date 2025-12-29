@@ -42,7 +42,7 @@ class InOrder extends Module {
   val imm_p0 = RegNext(fetch.io.imm, 0.U)
   val imm_mux_p0 = RegNext(fetch.io.imm_mux, false.B)
   val mem_mux_p0 = RegNext(fetch.io.mem_mux, false.B)
-  val flags_d_p0 = RegNext(fetch.io.flags_d, false.B)
+  val alu_d_p0 = RegNext(fetch.io.alu_d, false.B)
 
   // Connect p0 to rf and pipeline signals
   rf.io.srcs(0) := r1_p0 
@@ -55,12 +55,15 @@ class InOrder extends Module {
   val s2_p1 = RegNext(s2, 0.U)
   val op_p1 = RegNext(op_p0, 0.U)
   val mem_mux_p1 = RegNext(mem_mux_p0, false.B)
-  val flags_d_p1 = RegNext(flags_d_p0, false.B)
+  val alu_d_p1 = RegNext(alu_d_p0, false.B)
 
   // Connect pip1 to the alu
   alu.io.src1 := s1_p1
   alu.io.src2 := s2_p1
   alu.io.op := op_p1
+
+  fetch.io.jmp_ready := alu_d_p1
+  fetch.io.jmp_addr := alu.io.dest
 
   val s1_p2 = RegNext(s1_p1, 0.U)
   val res_p2 = RegNext(alu.io.dest, 0.U)
@@ -77,12 +80,11 @@ class InOrder extends Module {
   // Connect the hazard unit to the pipeline
   hu.io.src1 := fetch.io.hu_src1
   hu.io.src2 := fetch.io.hu_src2
-  hu.io.fd := fetch.io.hu_flags
 
   hu.io.rd_p0 := rd_p0
-  hu.io.fd_p0 := flags_d_p0
+  hu.io.alu_p0 := alu_d_p0
   hu.io.rd_p1 := rd_p1
-  hu.io.fd_p1 := flags_d_p1
+  hu.io.alu_p1 := alu_d_p1
   fetch.io.stall := hu.io.stall
 
   // Debug signals
@@ -101,6 +103,6 @@ class InOrder extends Module {
   io.s2_p2 := res_p2
   io.rd_p2 := rd_p2
 
-  io.debug := fetch.io.debug
+  io.debug := alu.io.dest
   io.stall := hu.io.stall
 }

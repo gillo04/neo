@@ -76,7 +76,7 @@ class InOrderTest extends AnyFreeSpec with Matchers with ChiselSim {
   "2: JAL saves return address" in {
     // Load instructions from file
     val instruction_cache = instructionsFromFile("./test_files/test02.bin")
-    val expected_a0 = Seq(0.U,    0.U,    0.U,    0.U,    0.U,    0.U,  8.U,  8.U,  8.U)
+    val expected_a0 = Seq(0.U,    0.U,    0.U,    0.U,    0.U,    0.U,  12.U,  12.U,  12.U)
 
     simulate(new InOrder) { c =>
       for (i <- 0 until expected_a0.size) {
@@ -92,6 +92,54 @@ class InOrderTest extends AnyFreeSpec with Matchers with ChiselSim {
         c.clock.step()
         // println(f"${c.io.rf(10).peek()}\t${c.io.pc.peek()}")
         c.io.rf(10).expect(expected_a0(i))
+      }
+    }
+  }
+
+  "3: JALR" in {
+    // Load instructions from file
+    val instruction_cache = instructionsFromFile("./test_files/test03.bin")
+    val expected_a0 = Seq(0.U,    0.U,    0.U,    0.U,    15.U,   15.U,   15.U,   15.U,   15.U,   15.U,   20.U,   20.U)
+    val expected_a1 = Seq(0.U,    0.U,    0.U,    0.U,    0.U,    0.U,  0.U,  0.U,  0.U)
+
+    simulate(new InOrder) { c =>
+      for (i <- 0 until expected_a0.size) {
+        // Fetch instruction
+        val pc = c.io.pc.peek().litValue.toInt/4
+        if (pc < instruction_cache.size) {
+          c.io.inst_in.poke(instruction_cache(pc).S(32.W).asUInt)
+        } else {
+          c.io.inst_in.poke(0.U)
+        }
+
+        // Step the clock
+        c.clock.step()
+        // println(f"${c.io.rf(10).peek()}\t${c.io.pc.peek()}")
+        c.io.rf(10).expect(expected_a0(i))
+      }
+    }
+  }
+
+  "4: LUI and AUIPC" in {
+    // Load instructions from file
+    val instruction_cache = instructionsFromFile("./test_files/test04.bin")
+    val expected_a0 = Seq(0.U,    0.U,    0.U,    0.U,    4096.U,   4096.U,   4096.U)
+    val expected_a1 = Seq(0.U,    0.U,    0.U,    0.U,    0.U,      4100.U,   4100.U) 
+
+    simulate(new InOrder) { c =>
+      for (i <- 0 until expected_a0.size) {
+        // Fetch instruction
+        val pc = c.io.pc.peek().litValue.toInt/4
+        if (pc < instruction_cache.size) {
+          c.io.inst_in.poke(instruction_cache(pc).S(32.W).asUInt)
+        } else {
+          c.io.inst_in.poke(0.U)
+        }
+
+        // Step the clock
+        c.clock.step()
+        c.io.rf(10).expect(expected_a0(i))
+        c.io.rf(11).expect(expected_a1(i))
       }
     }
   }
