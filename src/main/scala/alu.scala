@@ -7,7 +7,8 @@ class Alu extends Module {
     val src2 =  Input(UInt(32.W))
     val op =    Input(UInt(4.W))
 
-    val dest = Output(UInt(32.W))
+    val dest =  Output(UInt(32.W))
+    val flags = Output(UInt(3.W)) // 0: equality, 1: less than signed, 2: less than unsigned
   })
 
   io.dest := 0.U
@@ -53,6 +54,13 @@ class Alu extends Module {
       io.dest := (io.src1.asSInt >> io.src2(4,0)).asUInt
     }
   }
+
+  // Generate flags
+  io.flags := Cat(Seq(
+    io.src1 < io.src2,
+    io.src1.asSInt < io.src2.asSInt,
+    io.src1 === io.src2
+  ))
 }
 
 /*object Alu extends App {
