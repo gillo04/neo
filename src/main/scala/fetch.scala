@@ -7,12 +7,12 @@ class Fetch extends Module {
     val inst_in =     Input(UInt(32.W))
     val pc =          Output(UInt(32.W))
 
-    // Hazard unit
+    // Hazard unit (dependencies)
     val hu_src1 =     Output(UInt(5.W))
     val hu_src2 =     Output(UInt(5.W))
     val stall =       Input(Bool())
 
-    // Foreward
+    // Foreward signals
     val src1 =        Output(UInt(5.W))
     val src2 =        Output(UInt(5.W))
     val dest =        Output(UInt(5.W))
@@ -22,6 +22,7 @@ class Fetch extends Module {
     val mem_mux =     Output(Bool())
     val mem_size =    Output(UInt(2.W))
     val mem_sx =      Output(Bool())      // Sign extend the value read from memory
+    val mem_store =   Output(Bool())
     val alu_d =       Output(Bool())
 
     // Jumping bypass
@@ -73,6 +74,7 @@ class Fetch extends Module {
   io.mem_mux := false.B
   io.mem_size := 0.U
   io.mem_sx := false.B
+  io.mem_store := false.B
   io.alu_d := false.B
 
   // R-type
@@ -229,6 +231,8 @@ class Fetch extends Module {
     }
     is ("b0000011".U) {
       // I type
+      io.hu_src1 := i_src1
+
       // LB
       // LH
       // LW
@@ -268,13 +272,18 @@ class Fetch extends Module {
     }
     is ("b0100011".U) {
       // S type
+      io.hu_src1 := s_src1
+      io.hu_src2 := s_src2
+
       src1 := s_src1
+      src2 := s_src2
       io.dest := 0.U
       io.imm_mux := true.B
       io.mem_mux := false.B
       val tmp = Wire(SInt(32.W))
-      tmp := s_imm1.asSInt
+      tmp := Cat(s_imm1, s_imm2).asSInt
       io.imm := tmp.asUInt
+      io.mem_store := true.B
 
       switch (s_funct3) {
         is ("b000".U) {
@@ -350,11 +359,16 @@ class Fetch extends Module {
 
   // When stalling ensure to issue nops and to keep the HU clear
   when (io.stall) {
-    io.dest := 0.U
     io.src1 := 0.U
     io.src2 := 0.U
+    io.dest := 0.U
+    io.imm := 0.U
     io.alu_op := 0.U
     io.imm_mux := false.B
     io.mem_mux := false.B
+    io.mem_size := 0.U
+    io.mem_sx := false.B
+    io.mem_store := false.B
+    io.alu_d := false.B
   }
 }

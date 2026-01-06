@@ -1,34 +1,38 @@
 import chisel3._
 import chisel3.util._
+import _root_.circt.stage.ChiselStage
 
-class InOrder extends Module {
+class InOrder(debug_mode: bool) extends Module {
   val io = IO(new Bundle{
     // Icache
     val inst_in = Input(UInt(32.W))
     val pc =      Output(UInt(32.W))
 
     // Dcache
-    val addr =    Output(UInt(32.W))
+    val addr =    Output(UInt(30.W))
     val read =    Input(UInt(32.W))
     val write =   Output(UInt(32.W))
+    val write_mask =   Output(UInt(32.W))
 
     // Debug
-    val rf =      Output(Vec(32, UInt(32.W)))
-    val stall =   Output(Bool())
+    if (debug_mode) {
+      val rf =      Output(Vec(32, UInt(32.W)))
+      val stall =   Output(Bool())
 
-    val s1_p0 =   Output(UInt(5.W))
-    val s2_p0 =   Output(UInt(5.W))
-    val rd_p0 =   Output(UInt(5.W))
+      val s1_p0 =   Output(UInt(5.W))
+      val s2_p0 =   Output(UInt(5.W))
+      val rd_p0 =   Output(UInt(5.W))
 
-    val s1_p1 =   Output(UInt(32.W))
-    val s2_p1 =   Output(UInt(32.W))
-    val rd_p1 =   Output(UInt(5.W))
+      val s1_p1 =   Output(UInt(32.W))
+      val s2_p1 =   Output(UInt(32.W))
+      val rd_p1 =   Output(UInt(5.W))
 
-    val s1_p2 =   Output(UInt(32.W))
-    val s2_p2 =   Output(UInt(32.W))
-    val rd_p2 =   Output(UInt(5.W))
+      val s1_p2 =   Output(UInt(32.W))
+      val s2_p2 =   Output(UInt(32.W))
+      val rd_p2 =   Output(UInt(5.W))
 
-    val debug =   Output(UInt(32.W))
+      val debug =   Output(UInt(32.W))
+    }
   })
 
   val fetch = Module(new Fetch)
@@ -50,6 +54,7 @@ class InOrder extends Module {
   val mem_mux_p0 = RegNext(fetch.io.mem_mux, false.B)
   val mem_size_p0 = RegNext(fetch.io.mem_size, 0.U)
   val mem_sx_p0 = RegNext(fetch.io.mem_sx, false.B)
+  val mem_store_p0 = RegNext(fetch.io.mem_store, false.B)
   val alu_d_p0 = RegNext(fetch.io.alu_d, false.B)
 
   // Connect p0 to rf and pipeline signals
@@ -65,6 +70,7 @@ class InOrder extends Module {
   val mem_mux_p1 = RegNext(mem_mux_p0, false.B)
   val mem_size_p1 = RegNext(mem_size_p0, 0.U)
   val mem_sx_p1 = RegNext(mem_sx_p0, false.B)
+  val mem_store_p1 = RegNext(mem_store_p0, false.B)
   val alu_d_p1 = RegNext(alu_d_p0, false.B)
 
   // Connect pip1 to the alu
@@ -82,19 +88,27 @@ class InOrder extends Module {
   val mem_mux_p2 = RegNext(mem_mux_p1, false.B)
   val mem_size_p2 = RegNext(mem_size_p1, 0.U)
   val mem_sx_p2 = RegNext(mem_sx_p1, false.B)
+  val mem_store_p2 = RegNext(mem_store_p1, false.B)
   
-  // Connect pip2 to the memory io and the result to the rf
-  mau.io.addr_p := res_p2
-  mau.io.write_p := s2_p2
+  // Connect pip1 and pip2 to the memory io and the result to the rf
+  mau.io.addr_p1 := alu.io.dest
+  mau.io.addr_p2 := res_p2
+  mau.io.write_p1 := s2_p1
 
   mau.io.read_m := io.read
   io.addr := mau.io.addr_m
   io.write := mau.io.write_m
+  io.write_mask := mau.io.write_mask_m
 
-  mau.io.mem_size := mem_size_p2
-  mau.io.mem_sx := mem_sx_p2 
+  mau.io.mem_size_p1 := mem_size_p1
+  mau.io.mem_sx_p1 := mem_sx_p1 
+  mau.io.mem_store_p1 := mem_store_p1
 
-  rf.io.write_data := Mux(mem_mux_p2, res_p2, mau.io.read_p)
+  mau.io.mem_size_p2 := mem_size_p2
+  mau.io.mem_sx_p2 := mem_sx_p2 
+  mau.io.mem_store_p2 := mem_store_p2
+
+  rf.io.write_data := Mux(mem_mux_p2, res_p2, mau.io.read_p2)
   rf.io.write_reg := rd_p2
 
   // Connect the hazard unit to the pipeline
@@ -125,4 +139,12 @@ class InOrder extends Module {
 
   io.debug := alu.io.dest
   io.stall := hu.io.stall
+}
+
+object InOrder extends App {
+  ChiselStage.emitSystemVerilogFile(
+    new InOrder,
+    Array("--target-dir", "builds"),
+    firtoolOpts = Array("-disable-all-randomization", "-strip-debug-info", "-default-layer-specialization=enable")
+  )
 }

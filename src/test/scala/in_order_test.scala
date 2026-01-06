@@ -166,8 +166,33 @@ class InOrderTest extends AnyFreeSpec with Matchers with ChiselSim {
 
         // Step the clock
         c.clock.step()
-        println(f"${c.io.pc.peek().litValue}")
+        // println(f"${c.io.pc.peek().litValue}")
         c.io.rf(11).expect(expected_a1(i))
+      }
+    }
+  }
+
+  "6: Loads and stores" in {
+    // Load instructions from file
+    val instruction_cache = instructionsFromFile("./test_files/test06.bin")
+    val expected_a1 = Seq(0.U,    0.U,    0.U,    0.U,    0.U,  0.U,  0.U,  0.U,
+                          5.U,    5.U,    5.U,    5.U,    5.U,  5.U,  5.U,
+                          70.U,   70.U,   70.U,   70.U,   70.U, 70.U, 70.U)
+
+    simulate(new InOrder) { c =>
+      for (i <- 0 until expected_a1.size) {
+        // Fetch instruction
+        val pc = c.io.pc.peek().litValue.toInt/4
+        if (pc < instruction_cache.size) {
+          c.io.inst_in.poke(instruction_cache(pc).S(32.W).asUInt)
+        } else {
+          c.io.inst_in.poke(0.U)
+        }
+
+        // Step the clock
+        c.clock.step()
+        println(f"${c.io.pc.peek().litValue}\t${c.io.write_mask.peek().litValue}\t${c.io.addr.peek().litValue}\t${c.io.write.peek().litValue}")
+        // c.io.rf(11).expect(expected_a1(i))
       }
     }
   }
