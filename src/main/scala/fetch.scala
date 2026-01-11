@@ -32,6 +32,8 @@ class Fetch extends Module {
 
     // Debug
     val debug = Output(UInt(32.W))
+    val this_pc = Output(UInt(32.W))
+    val this_inst = Output(UInt(32.W))
   })
 
   // instruction and program counter
@@ -42,6 +44,7 @@ class Fetch extends Module {
   val jmp_mux = WireInit(false.B)
   val jmp_dest = WireInit(0.S(32.W)) // Calculated later
   val next_pc = Mux(jmp_mux, jmp_dest.asUInt, pc)
+  val buff_pc = RegInit(0.U) // The pc of the instruction currently in inst
   val this_pc = RegInit(0.U) // The pc of the instruction currently in inst
   val jmp_state = RegInit(false.B) // 0: prepare jmp; 1: waiting for the jmp addr to be calculated 
 
@@ -49,10 +52,18 @@ class Fetch extends Module {
   val internal_stall = WireInit(false.B)
   when (!io.stall & !internal_stall) {
     pc := next_pc + 4.U
-    this_pc := next_pc
-    inst := io.inst_in
+    buff_pc := next_pc
+    this_pc := buff_pc
+    when (!jmp_mux) {
+      inst := io.inst_in
+    } .otherwise {
+      inst := 0.U
+    }
+
+    io.pc := next_pc
+  } .otherwise {
+    io.pc := buff_pc
   }
-  io.pc := next_pc
 
 
   // Instruction decoding
@@ -371,4 +382,8 @@ class Fetch extends Module {
     io.mem_store := false.B
     io.alu_d := false.B
   }
+
+  // Debug
+  io.this_pc := this_pc
+  io.this_inst := inst
 }

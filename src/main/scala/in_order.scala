@@ -2,37 +2,39 @@ import chisel3._
 import chisel3.util._
 import _root_.circt.stage.ChiselStage
 
-class InOrder(debug_mode: bool) extends Module {
+class InOrder extends Module {
   val io = IO(new Bundle{
     // Icache
-    val inst_in = Input(UInt(32.W))
-    val pc =      Output(UInt(32.W))
+    val inst_in =     Input(UInt(32.W))
+    val pc =          Output(UInt(32.W))
 
     // Dcache
-    val addr =    Output(UInt(30.W))
-    val read =    Input(UInt(32.W))
-    val write =   Output(UInt(32.W))
-    val write_mask =   Output(UInt(32.W))
+    val addr =        Output(UInt(30.W))
+    val read =        Input(UInt(32.W))
+    val write =       Output(UInt(32.W))
+    val write_mask =  Output(UInt(32.W))
+    val write_en =    Output(Bool())
 
     // Debug
-    if (debug_mode) {
-      val rf =      Output(Vec(32, UInt(32.W)))
-      val stall =   Output(Bool())
+    val rf =          Output(Vec(32, UInt(32.W)))
+    val stall =       Output(Bool())
 
-      val s1_p0 =   Output(UInt(5.W))
-      val s2_p0 =   Output(UInt(5.W))
-      val rd_p0 =   Output(UInt(5.W))
+    val s1_p0 =       Output(UInt(5.W))
+    val s2_p0 =       Output(UInt(5.W))
+    val rd_p0 =       Output(UInt(5.W))
 
-      val s1_p1 =   Output(UInt(32.W))
-      val s2_p1 =   Output(UInt(32.W))
-      val rd_p1 =   Output(UInt(5.W))
+    val s1_p1 =       Output(UInt(32.W))
+    val s2_p1 =       Output(UInt(32.W))
+    val rd_p1 =       Output(UInt(5.W))
 
-      val s1_p2 =   Output(UInt(32.W))
-      val s2_p2 =   Output(UInt(32.W))
-      val rd_p2 =   Output(UInt(5.W))
+    val s1_p2 =       Output(UInt(32.W))
+    val s2_p2 =       Output(UInt(32.W))
+    val rd_p2 =       Output(UInt(5.W))
 
-      val debug =   Output(UInt(32.W))
-    }
+    val this_pc =     Output(UInt(32.W))
+    val this_inst =   Output(UInt(32.W))
+
+    val debug =       Output(UInt(32.W))
   })
 
   val fetch = Module(new Fetch)
@@ -99,6 +101,7 @@ class InOrder(debug_mode: bool) extends Module {
   io.addr := mau.io.addr_m
   io.write := mau.io.write_m
   io.write_mask := mau.io.write_mask_m
+  io.write_en := mem_store_p1
 
   mau.io.mem_size_p1 := mem_size_p1
   mau.io.mem_sx_p1 := mem_sx_p1 
@@ -137,8 +140,10 @@ class InOrder(debug_mode: bool) extends Module {
   io.s2_p2 := 0.U 
   io.rd_p2 := rd_p2
 
-  io.debug := alu.io.dest
+  io.debug := Cat(alu_d_p1)
   io.stall := hu.io.stall
+  io.this_pc := fetch.io.this_pc
+  io.this_inst := fetch.io.this_inst
 }
 
 object InOrder extends App {

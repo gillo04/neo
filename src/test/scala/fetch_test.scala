@@ -25,6 +25,7 @@ class FetchTest extends AnyFreeSpec with Matchers with ChiselSim {
       c.io.imm.expect(0.U)
       c.io.alu_op.expect(0.U)
       c.clock.step()
+      c.clock.step()
       c.io.src1.expect(2.U)
       c.io.src2.expect(3.U)
       c.io.dest.expect(1.U)
