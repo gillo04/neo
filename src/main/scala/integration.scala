@@ -41,7 +41,7 @@ class Integration extends Module {
 
 object Integration extends App {
   ChiselStage.emitSystemVerilogFile(
-    new InOrder,
+    new Integration,
     Array("--target-dir", "builds"),
     firtoolOpts = Array("-disable-all-randomization", "-strip-debug-info", "-default-layer-specialization=enable")
   )
