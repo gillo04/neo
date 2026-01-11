@@ -146,10 +146,10 @@ class InOrder extends Module {
   io.this_inst := fetch.io.this_inst
 }
 
-object InOrder extends App {
+/*object InOrder extends App {
   ChiselStage.emitSystemVerilogFile(
     new InOrder,
     Array("--target-dir", "builds"),
     firtoolOpts = Array("-disable-all-randomization", "-strip-debug-info", "-default-layer-specialization=enable")
   )
-}
+}*/

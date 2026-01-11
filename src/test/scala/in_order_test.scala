@@ -167,7 +167,7 @@ class InOrderTest extends AnyFreeSpec with Matchers with ChiselSim {
           c.io.inst_in.poke(0.U)
         }
 
-        println(f"${c.io.this_pc.peek().litValue}\t${c.io.rf(11).peek().litValue}\t${c.io.rf(12).peek().litValue}\t${c.io.debug.peek().litValue.toString(2)}")
+        // println(f"${c.io.this_pc.peek().litValue}\t${c.io.rf(11).peek().litValue}\t${c.io.rf(12).peek().litValue}\t${c.io.debug.peek().litValue.toString(2)}")
         c.io.rf(11).expect(expected_a1(i))
       }
     }

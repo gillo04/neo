@@ -1,5 +1,6 @@
 import chisel3._
 import chisel3.util._
+import _root_.circt.stage.ChiselStage
 
 // Eventually, this will be templated over the pipeline type
 class Integration extends Module {
@@ -36,4 +37,12 @@ class Integration extends Module {
   d_cache.io.wdata := pipeline.io.write
   d_cache.io.be := pipeline.io.write_mask
   d_cache.io.wen := pipeline.io.write_en
+}
+
+object Integration extends App {
+  ChiselStage.emitSystemVerilogFile(
+    new InOrder,
+    Array("--target-dir", "builds"),
+    firtoolOpts = Array("-disable-all-randomization", "-strip-debug-info", "-default-layer-specialization=enable")
+  )
 }
