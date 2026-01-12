@@ -1,3 +1,5 @@
+package in_order
+
 import chisel3._
 import chisel3.experimental.BundleLiterals._
 import chisel3.experimental.VecLiterals._

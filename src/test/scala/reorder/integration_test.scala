@@ -1,3 +1,5 @@
+package reorder
+
 import chisel3._
 import chisel3.experimental.BundleLiterals._
 import chisel3.simulator.scalatest.ChiselSim

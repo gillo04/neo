@@ -1,8 +1,9 @@
+package reorder
+
 import chisel3._
 import chisel3.util._
 import _root_.circt.stage.ChiselStage
 
-// Eventually, this will be templated over the pipeline type
 class Integration extends Module {
   val io = IO(new Bundle{
     // Debug
@@ -12,7 +13,7 @@ class Integration extends Module {
     val wdata = Input(UInt(32.W))
     val wen   = Input(Bool())
   })
-  val pipeline = Module(new InOrder)
+  val pipeline = Module(new Reorder)
   io.rf := pipeline.io.rf
   io.pc := pipeline.io.pc
 
