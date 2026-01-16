@@ -10,7 +10,7 @@ import java.nio.{ByteBuffer, ByteOrder}
 
 class RobTest extends AnyFreeSpec with Matchers with ChiselSim {
   "Should properly increment pointers" in {
-    simulate(new Rob(6, 2)) { c =>
+    simulate(new Rob(6, 2, 2)) { c =>
       // Initialize everything
       c.io.pip_ports(0).valid.poke(false.B)
       c.io.pip_ports(0).addr.poke(0.U)

@@ -15,6 +15,11 @@ You can run all tests by executing:
 ```
 sbt test
 ``` 
+You may see some tests failing due to them accessing the same test binary at the same time. You can test the individual pipelines by running:
+```
+sbt "testOnly in_order.*"
+sbt "testOnly reorder.*"
+``` 
 You can generate the verilog for the integrated in-order pipeline by executing:
 ``` 
 sbt run

@@ -26,6 +26,7 @@ class Fetch extends Module {
     val mem_sx =      Output(Bool())      // Sign extend the value read from memory
     val mem_store =   Output(Bool())
     val alu_d =       Output(Bool())
+    val dest_valid = Output(Bool())
 
     // Jumping bypass
     val jmp_ready =   Input(Bool())       // The jmp_addr has been calculated
@@ -89,6 +90,7 @@ class Fetch extends Module {
   io.mem_sx := false.B
   io.mem_store := false.B
   io.alu_d := false.B
+  io.dest_valid := false.B
 
   // R-type
   val r_funct7 = inst(31,25)
@@ -135,6 +137,7 @@ class Fetch extends Module {
     is ("b0110111".U) {
       // U type
       // LUI
+      io.dest_valid := true.B
       io.dest := u_dest
       src1 := 0.U
       io.imm := Cat(u_imm1, 0.U(12.W))
@@ -144,6 +147,7 @@ class Fetch extends Module {
     is ("b0010111".U) {
       // U type
       // AUIPC
+      io.dest_valid := true.B
       io.dest := u_dest
       io.imm := Cat(u_imm1, 0.U(12.W)) + this_pc
       io.imm_mux := true.B
@@ -152,6 +156,7 @@ class Fetch extends Module {
     is ("b1101111".U) {
       // J type
       // JAL
+      io.dest_valid := true.B
       jmp_mux := true.B
       jmp_dest := Cat(Seq(j_imm4, j_imm3, j_imm2, j_imm1, 0.U(1.W))).asSInt + this_pc.asSInt
 
@@ -167,6 +172,7 @@ class Fetch extends Module {
     is ("b1100111".U) {
       // I type
       // JALR
+      io.dest_valid := true.B
       io.hu_src1 := i_src1
 
       when (!io.stall) {   // When the dependency is solved
@@ -244,6 +250,7 @@ class Fetch extends Module {
     }
     is ("b0000011".U) {
       // I type
+      io.dest_valid := true.B
       io.hu_src1 := i_src1
 
       // LB
@@ -315,6 +322,7 @@ class Fetch extends Module {
     }
     is ("b0010011".U) {
       // I type
+      io.dest_valid := true.B
       src1 := i_src1
       io.dest := i_dest
       io.imm_mux := true.B
@@ -341,6 +349,7 @@ class Fetch extends Module {
     }
     is ("b0110011".U) {
       // R type
+      io.dest_valid := true.B
       src1 := r_src1
       src2 := r_src2
       io.dest := r_dest
@@ -383,6 +392,7 @@ class Fetch extends Module {
     io.mem_sx := false.B
     io.mem_store := false.B
     io.alu_d := false.B
+    io.dest_valid := false.B
   }
 
   // Debug
