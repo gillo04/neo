@@ -64,10 +64,3 @@ class Alu extends Module {
     io.src1 === io.src2
   ))
 }
-
-/*object Alu extends App {
-  ChiselStage.emitSystemVerilogFile(
-    new Alu,
-    firtoolOpts = Array()
-  )
-}*/

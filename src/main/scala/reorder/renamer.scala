@@ -5,6 +5,8 @@ import chisel3.util._
 import chisel3.experimental.BundleLiterals._
 
 class Renamer(rob_addr_bits: Int, pip_ports_count: Int, inputs: Int) extends Module {
+  val buffer_size = math.pow(2, rob_addr_bits).toInt
+
   val io = IO(new Bundle{
     val stall =     Output(Bool())
     
@@ -21,20 +23,22 @@ class Renamer(rob_addr_bits: Int, pip_ports_count: Int, inputs: Int) extends Mod
     val pip_ports = Input(Vec(pip_ports_count, new RobPipPort(rob_addr_bits)))
 
     // Debug io
-    val registers = Output(Vec(32, UInt(32.W)))
+    val registers = Output(Vec(32, new RfEntry(rob_addr_bits)))
+    val buffer =    Output(Vec(buffer_size, new RobEntry))
   })
 
   val rf = Module(new RegisterFile(rob_addr_bits, inputs))
   io.registers := rf.io.registers
 
   val rob = Module(new Rob(rob_addr_bits, pip_ports_count, inputs))
+  io.buffer := rob.io.buffer
 
   // Rob writeback
   rob.io.pip_ports := io.pip_ports
   rf.io.write_reg := rob.io.rf_dest
   rf.io.write_data.valid := rob.io.rf_valid
   rf.io.write_data.value := rob.io.rf_value
-  rf.io.write_data.name := 0.U
+  rf.io.write_data.name := rob.io.rf_name
 
   // Search for value
   for (i <- 0 until inputs) {

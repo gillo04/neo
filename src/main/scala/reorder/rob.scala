@@ -27,6 +27,8 @@ class RobReq(addr_bits: Int) extends Bundle {
 
 // ReOrder Buffer
 class Rob(addr_bits: Int, pip_ports_count: Int, inputs: Int) extends Module {
+  val buffer_size = math.pow(2, addr_bits).toInt
+
   val io = IO(new Bundle{
     // Request ports
     val rq_ready =  Input(Bool())
@@ -37,6 +39,7 @@ class Rob(addr_bits: Int, pip_ports_count: Int, inputs: Int) extends Module {
     val rf_valid =  Output(Bool())
     val rf_dest =   Output(UInt(5.W))
     val rf_value =  Output(UInt(32.W))
+    val rf_name =  Output(UInt(addr_bits.W))
 
     // Pipeline ports
     val pip_ports = Input(Vec(pip_ports_count, new RobPipPort(addr_bits)))
@@ -44,12 +47,14 @@ class Rob(addr_bits: Int, pip_ports_count: Int, inputs: Int) extends Module {
     // Access
     val srcs =      Input(Vec(inputs, UInt(addr_bits.W)))
     val dests =     Output(Vec(inputs, new RobEntry))
-  })
 
-  val buffer_size = math.pow(2, addr_bits).toInt
+    // Debug
+    val buffer =    Output(Vec(buffer_size, new RobEntry))
+  })
 
   // Buffer
   val buffer = RegInit(VecInit(Seq.fill(buffer_size)((new RobEntry).Lit(_.valid -> false.B, _.dest -> 0.U, _.value -> 0.U, _.busy -> false.B))))
+  io.buffer := buffer
 
   // Pointers
   val top = RegInit(0.U(addr_bits.W))
@@ -69,7 +74,8 @@ class Rob(addr_bits: Int, pip_ports_count: Int, inputs: Int) extends Module {
   io.rf_valid := buffer(top).valid
   io.rf_dest := buffer(top).dest
   io.rf_value := buffer(top).value
-  when (buffer(top).valid) {
+  io.rf_name := top
+  when (buffer(top).busy && buffer(top).valid) {
     buffer(top).busy := false.B
   }
 

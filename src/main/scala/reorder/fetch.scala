@@ -26,7 +26,7 @@ class Fetch extends Module {
     val mem_sx =      Output(Bool())      // Sign extend the value read from memory
     val mem_store =   Output(Bool())
     val alu_d =       Output(Bool())
-    val dest_valid = Output(Bool())
+    val dest_valid =  Output(Bool())
 
     // Jumping bypass
     val jmp_ready =   Input(Bool())       // The jmp_addr has been calculated
@@ -172,7 +172,6 @@ class Fetch extends Module {
     is ("b1100111".U) {
       // I type
       // JALR
-      io.dest_valid := true.B
       io.hu_src1 := i_src1
 
       when (!io.stall) {   // When the dependency is solved
@@ -194,6 +193,8 @@ class Fetch extends Module {
           jmp_dest := io.jmp_addr.asSInt
           jmp_mux := true.B
 
+          // Issue link instruction
+          io.dest_valid := true.B
           io.imm := this_pc + 4.U
           io.src1 := 0.U
           io.dest := j_dest

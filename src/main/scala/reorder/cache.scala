@@ -29,11 +29,3 @@ class Cache(memory_file: String = "") extends Module {
     loadMemoryFromFileInline(mem, memory_file)
   }
 }
-
-/*object Cache extends App {
-  ChiselStage.emitSystemVerilogFile(
-    new Cache,
-    Array("--target-dir", "builds"),
-    firtoolOpts = Array("-disable-all-randomization", "-strip-debug-info", "-default-layer-specialization=enable")
-  )
-}*/

@@ -32,11 +32,11 @@ class RegisterFile(rob_addr_bits: Int, inputs: Int) extends Module {
     val new_name =      Input(UInt(rob_addr_bits.W))
 
     // Debug io
-    val registers = Output(Vec(32, UInt(32.W)))
+    val registers = Output(Vec(32, new RfEntry(rob_addr_bits)))
   })
 
   val registers = RegInit(VecInit(Seq.fill(32)((new RfEntry(rob_addr_bits)).Lit(_.valid -> true.B, _.value -> 0.U, _.name -> 0.U))))
-  io.registers := registers.map((r) => r.value)
+  io.registers := registers
 
   // Read logic
   for (i <- 0 until inputs) {
