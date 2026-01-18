@@ -48,7 +48,7 @@ class Renamer(rob_addr_bits: Int, pip_ports_count: Int, inputs: Int) extends Mod
   }
 
   // Stall
-  val make_request = io.dest_valid & io.dest =/= 0.U
+  val make_request = io.dest_valid /*& io.dest =/= 0.U*/
   val stall = Seq.tabulate(inputs)(i => i).foldLeft(false.B)((x, y) => x | (!rob.io.dests(y).valid & !rf.io.dests(y).valid)) |
               (!rob.io.rq_valid & make_request)
   io.stall := stall

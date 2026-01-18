@@ -1,4 +1,5 @@
 # Uncontitional jump foreward and backwards
+# a5 = 1111
 
 .section .text
 .globl _start
@@ -20,4 +21,5 @@ label_1:
 
 label_3:
   add a4, a4, a3  # 9
+  mv a5, a4
   j .

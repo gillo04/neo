@@ -99,6 +99,7 @@ class InOrderTest extends AnyFreeSpec with Matchers with ChiselSim {
   }
 
   "3: JALR" in {
+    // TODO: revise this test case... should a1 be 8?
     // Load instructions from file
     val instruction_cache = instructionsFromFile("./test_files/test03.bin")
     val expected_a0 = Seq(0.U,    0.U,    0.U,    0.U,    0.U,    15.U,   15.U,   15.U,   15.U,   15.U,   15.U,   15.U,   20.U,   20.U)
