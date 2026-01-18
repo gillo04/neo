@@ -9,7 +9,9 @@ class HazardUnit extends Module {
     val renamer =  Input(Bool())
 
     val stall =   Output(Bool())
+    val stall_fetch =   Output(Bool())
   })
 
-  io.stall := io.alu_p0 | io.renamer
+  io.stall := io.renamer
+  io.stall_fetch := io.alu_p0 | io.renamer
 }

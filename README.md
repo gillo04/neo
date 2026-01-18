@@ -2,13 +2,14 @@
 Neo aims at being a RISC-V out-of-order soft core written in Chisel.
 
 # Project status
-At the moment, only an in-order pipeline has been implemented, to test the fundamental elements of the core. It can execute all RV32I instructions, except for `FENCE`, `FENCE.TSO`, `PAUSE`, `ECALL` and `EBREAK`.
+At the moment, only the in-order pipeline has been implemented, while the renaming pipeline is a work in progress. The current implementations can execute all RV32I instructions, except for `FENCE`, `FENCE.TSO`, `PAUSE`, `ECALL` and `EBREAK`.
 The general timeline looks as follows:
-- [ ] Implement a reorder buffer and test it on an in-order pipeline
-- [ ] Implement reservation stations
+- [x] Implement an in-order pipeline
+- [ ] Implement a reorder buffer and make a pipeline with register renaming
+- [ ] Implement reservation stations and make an out-of-order pipeline
 - [ ] Implement brach prediction. Probably a simple global-history branch predictor
-- [ ] Implement load-store queues
 - [ ] Implement caching
+- [ ] Implement load-store queues
 
 # Run it
 You can run all tests by executing:

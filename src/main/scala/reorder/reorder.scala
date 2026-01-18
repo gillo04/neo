@@ -60,7 +60,6 @@ class Reorder extends Module {
   fetch.io.inst_in := io.inst_in
   io.pc := fetch.io.pc
 
-  // If stall, don't read from fetch
   val rd_p0 = RegInit(0.U)
   val r1_p0 = RegInit(0.U)
   val r2_p0 = RegInit(0.U)
@@ -74,6 +73,7 @@ class Reorder extends Module {
   val alu_d_p0 = RegInit(false.B)
   val dest_valid_p0 = RegInit(false.B)
 
+  // If stall, don't read from fetch
   when (!hu.io.stall) {
     rd_p0 := fetch.io.dest
     r1_p0 := fetch.io.src1
@@ -95,7 +95,6 @@ class Reorder extends Module {
   renamer.io.dest := rd_p0
   renamer.io.dest_valid := dest_valid_p0
 
-  // If stall, inject boubble
   val rd_p1 = RegInit(0.U)
   val nd_p1 = RegInit(0.U)
   val s1_p1 = RegInit(0.U)
@@ -110,6 +109,7 @@ class Reorder extends Module {
   val alu_d_p1 = RegInit(false.B)
   val dest_valid_p1 = RegInit(false.B)
 
+  // If stall, inject boubble
   when (!hu.io.stall) {
     rd_p1 := rd_p0
     nd_p1 := renamer.io.dest_addr
@@ -124,6 +124,20 @@ class Reorder extends Module {
     mem_store_p1 := mem_store_p0
     alu_d_p1 := alu_d_p0
     dest_valid_p1 := dest_valid_p0
+  } .otherwise {
+    rd_p1 := 0.U
+    nd_p1 := 0.U
+    s1_p1 := 0.U
+    s2_p1 := 0.U
+    imm_p1 := 0.U
+    op_p1 := 0.U
+    imm_mux_p1 := false.B
+    mem_mux_p1 := false.B
+    mem_size_p1 := 0.U
+    mem_sx_p1 := false.B
+    mem_store_p1 := false.B
+    alu_d_p1 := false.B
+    dest_valid_p1 := false.B
   }
 
   // Connect pip1 to the alu
@@ -178,7 +192,7 @@ class Reorder extends Module {
   // TODO: remove the hazard unit, its no longer needed
   hu.io.alu_p0 := alu_d_p0
   hu.io.renamer := renamer.io.stall
-  fetch.io.stall := hu.io.stall
+  fetch.io.stall := hu.io.stall_fetch
 
   // Debug signals
   io.rf := renamer.io.registers

@@ -187,7 +187,78 @@ class IntegrationTest extends AnyFreeSpec with Matchers with ChiselSim {
     }
   }
 
-  /*"7: Fibonacci with two registers" in {
+  "4: LUI and AUIPC" in {
+    // Load instructions from file
+    val instruction_cache = instructionsFromFile("./test_files/test04.bin")
+
+    simulate(new Integration) { c =>
+      // Load memory
+      c.io.wen.poke(true.B)
+      for (i <- 0 until instruction_cache.size) {
+        c.io.addr.poke(i.U)
+        c.io.wdata.poke(instruction_cache(i).S(32.W).asUInt)
+        c.clock.step()
+      }
+
+      for (i <- instruction_cache.size until 1024) {
+        c.io.addr.poke(i.U)
+        c.io.wdata.poke(0.U)
+        c.clock.step()
+      }
+      c.io.wen.poke(false.B)
+      
+      // Execute
+      while (c.io.rf(11).value.peek().litValue == 0) {
+        // Step the clock
+        // inspectData(c, Seq(0, 10, 11, 12, 13, 14), Seq(0, 1, 2, 3, 4, 5))
+        // inspectPipeline(c)
+        // println("====================================================")
+        c.clock.step()
+      }
+      c.io.rf(10).value.expect(4096.U)
+      c.io.rf(11).value.expect((4096 + 4100).U)
+    }
+  }
+
+  "5: Conditional branching" in {
+    // Load instructions from file
+    val instruction_cache = instructionsFromFile("./test_files/test05.bin")
+
+    simulate(new Integration) { c =>
+      // Load memory
+      c.io.wen.poke(true.B)
+      for (i <- 0 until instruction_cache.size) {
+        c.io.addr.poke(i.U)
+        c.io.wdata.poke(instruction_cache(i).S(32.W).asUInt)
+        c.clock.step()
+      }
+
+      for (i <- instruction_cache.size until 1024) {
+        c.io.addr.poke(i.U)
+        c.io.wdata.poke(0.U)
+        c.clock.step()
+      }
+      c.io.wen.poke(false.B)
+      
+      // Execute
+      val expected = Seq(0, 5, 10, 15, 50, 70)
+      var i = 0
+      while (i < expected.size - 1) {
+        if (c.io.rf(11).value.peek().litValue != expected(i)) {
+          i += 1
+        }
+        c.io.rf(11).value.expect(expected(i).U)
+        // Step the clock
+        // inspectData(c, Seq(0, 10, 11, 12, 13, 14), Seq(0, 1, 2, 3, 4, 5))
+        // inspectPipeline(c)
+        // println(f"$i====================================================")
+        c.clock.step()
+      }
+      c.io.rf(11).value.expect(70.U)
+    }
+  }
+
+  "7: Fibonacci with two registers" in {
     // Load instructions from file
     val instruction_cache = instructionsFromFile("./test_files/test07.bin")
 
@@ -243,5 +314,5 @@ class IntegrationTest extends AnyFreeSpec with Matchers with ChiselSim {
       }
       c.io.rf(14).value.expect(89.U)
     }
-  }*/
+  }
 }
