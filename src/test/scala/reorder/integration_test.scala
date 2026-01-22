@@ -315,4 +315,36 @@ class IntegrationTest extends AnyFreeSpec with Matchers with ChiselSim {
       c.io.rf(14).value.expect(89.U)
     }
   }
+
+  "9: Efficency test of reorder" in {
+    // Load instructions from file
+    val instruction_cache = instructionsFromFile("./test_files/test09.bin")
+
+    simulate(new Integration) { c =>
+      // Load memory
+      c.io.wen.poke(true.B)
+      for (i <- 0 until instruction_cache.size) {
+        c.io.addr.poke(i.U)
+        c.io.wdata.poke(instruction_cache(i).S(32.W).asUInt)
+        c.clock.step()
+      }
+
+      for (i <- instruction_cache.size until 1024) {
+        c.io.addr.poke(i.U)
+        c.io.wdata.poke(0.U)
+        c.clock.step()
+      }
+      c.io.wen.poke(false.B)
+      
+      // Execute
+      var cycles = 0
+      while (c.io.rf(14).value.peek().litValue == 0) {
+        // Step the clock
+        c.clock.step()
+        cycles += 1
+      }
+      c.io.rf(14).value.expect(21.U)
+      println(f"9: Cycles passed: $cycles")
+    }
+  }
 }

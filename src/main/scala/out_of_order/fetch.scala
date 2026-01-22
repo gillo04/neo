@@ -1,7 +1,23 @@
-package reorder
+package out_of_order 
 
 import chisel3._
 import chisel3.util._
+
+class Control extends Bundle {
+  val src1 =          UInt(5.W)
+  val src2 =          UInt(5.W)
+  val dest =          UInt(5.W)
+  val imm =           UInt(32.W)
+  val alu_op =        UInt(4.W)
+  val imm_mux =       Bool()
+  val mem_mux =       Bool()
+  val mem_size =      UInt(2.W)
+  val mem_sx =        Bool()      // Sign extend the value read from memory
+  val mem_store =     Bool()
+  val alu_d =         Bool()
+  val dest_valid_0 =  Bool()
+  val dest_valid_1 =  Bool()
+}
 
 class Fetch extends Module {
   val io = IO(new Bundle{
@@ -15,19 +31,7 @@ class Fetch extends Module {
     val stall =       Input(Bool())
 
     // Foreward signals
-    val src1 =        Output(UInt(5.W))
-    val src2 =        Output(UInt(5.W))
-    val dest =        Output(UInt(5.W))
-    val imm =         Output(UInt(32.W))
-    val alu_op =      Output(UInt(4.W))
-    val imm_mux =     Output(Bool())
-    val mem_mux =     Output(Bool())
-    val mem_size =    Output(UInt(2.W))
-    val mem_sx =      Output(Bool())      // Sign extend the value read from memory
-    val mem_store =   Output(Bool())
-    val alu_d =       Output(Bool())
-    val dest_valid_0= Output(Bool())
-    val dest_valid_1= Output(Bool())
+    val pip0 =        Output(new Control)
 
     // Jumping bypass
     val jmp_ready =   Input(Bool())       // The jmp_addr has been calculated
@@ -80,19 +84,19 @@ class Fetch extends Module {
   io.hu_src1 := src1
   io.hu_src2 := src2
 
-  io.src1 := src1
-  io.src2 := src2
-  io.dest := 0.U
-  io.imm := 0.U
-  io.alu_op := 0.U
-  io.imm_mux := false.B
-  io.mem_mux := false.B
-  io.mem_size := 0.U
-  io.mem_sx := false.B
-  io.mem_store := false.B
-  io.alu_d := false.B
-  io.dest_valid_0 := false.B
-  io.dest_valid_1 := false.B
+  io.pip0.src1 := src1
+  io.pip0.src2 := src2
+  io.pip0.dest := 0.U
+  io.pip0.imm := 0.U
+  io.pip0.alu_op := 0.U
+  io.pip0.imm_mux := false.B
+  io.pip0.mem_mux := false.B
+  io.pip0.mem_size := 0.U
+  io.pip0.mem_sx := false.B
+  io.pip0.mem_store := false.B
+  io.pip0.alu_d := false.B
+  io.pip0.dest_valid_0 := false.B
+  io.pip0.dest_valid_1 := false.B
 
   // R-type
   val r_funct7 = inst(31,25)
@@ -139,37 +143,36 @@ class Fetch extends Module {
     is ("b0110111".U) {
       // U type
       // LUI
-      io.dest_valid_0 := true.B
-      io.dest := u_dest
+      io.pip0.dest_valid_0 := true.B
+      io.pip0.dest := u_dest
       src1 := 0.U
-      io.imm := Cat(u_imm1, 0.U(12.W))
-      io.imm_mux := true.B
-      io.mem_mux := true.B
+      io.pip0.imm := Cat(u_imm1, 0.U(12.W))
+      io.pip0.imm_mux := true.B
+      io.pip0.mem_mux := true.B
     }
     is ("b0010111".U) {
       // U type
       // AUIPC
-      io.dest_valid_0 := true.B
-      io.dest := u_dest
-      io.imm := Cat(u_imm1, 0.U(12.W)) + this_pc
-      io.imm_mux := true.B
-      io.mem_mux := true.B
+      io.pip0.dest_valid_0 := true.B
+      io.pip0.dest := u_dest
+      io.pip0.imm := Cat(u_imm1, 0.U(12.W)) + this_pc
+      io.pip0.imm_mux := true.B
+      io.pip0.mem_mux := true.B
     }
     is ("b1101111".U) {
       // J type
       // JAL
-      io.dest_valid_0 := true.B
+      io.pip0.dest_valid_0 := true.B
       jmp_mux := true.B
       jmp_dest := Cat(Seq(j_imm4, j_imm3, j_imm2, j_imm1, 0.U(1.W))).asSInt + this_pc.asSInt
 
       // Issue add rd, x0, new_pc
-      io.imm := this_pc + 4.U
+      io.pip0.imm := this_pc + 4.U
       src1 := 0.U
-      io.dest := j_dest
-      io.imm_mux := true.B
-      io.mem_mux := true.B
-      io.alu_op := 0.U
-
+      io.pip0.dest := j_dest
+      io.pip0.imm_mux := true.B
+      io.pip0.mem_mux := true.B
+      io.pip0.alu_op := 0.U
     }
     is ("b1100111".U) {
       // I type
@@ -181,28 +184,28 @@ class Fetch extends Module {
           // Issue instruction to add rs1 to imm and stall the pipeline
           val sx = Wire(SInt(32.W))
           sx := i_imm1.asSInt
-          io.imm := sx.asUInt
-          io.src1 := i_src1
-          io.dest := 0.U
-          io.imm_mux := true.B
-          io.alu_op := 0.U
+          io.pip0.imm := sx.asUInt
+          io.pip0.src1 := i_src1
+          io.pip0.dest := 0.U
+          io.pip0.imm_mux := true.B
+          io.pip0.alu_op := 0.U
 
-          io.alu_d := true.B
+          io.pip0.alu_d := true.B
           jmp_state := true.B
-          internal_stall := true.B // Prevent fetching the next instruction
+          internal_stall := true.B // Prevent fetching the next instructio.pip0n
         } .elsewhen (io.jmp_ready === true.B) {
           // If jmp_ready, jmp_dest := jmp_addr
           jmp_dest := io.jmp_addr.asSInt
           jmp_mux := true.B
 
           // Issue link instruction
-          io.dest_valid_0 := true.B
-          io.imm := this_pc + 4.U
-          io.src1 := 0.U
-          io.dest := j_dest
-          io.imm_mux := true.B
-          io.mem_mux := true.B
-          io.alu_op := 0.U
+          io.pip0.dest_valid_0 := true.B
+          io.pip0.imm := this_pc + 4.U
+          io.pip0.src1 := 0.U
+          io.pip0.dest := j_dest
+          io.pip0.imm_mux := true.B
+          io.pip0.mem_mux := true.B
+          io.pip0.alu_op := 0.U
           jmp_state := false.B
         }
       }
@@ -224,13 +227,13 @@ class Fetch extends Module {
       when (!io.stall) {   // When the dependency is solved
         when (jmp_state === false.B) {
           // Issue add x0, r1, r2 so the alu can compare them
-          io.src1 := b_src1
-          io.src2 := b_src2
-          io.dest := 0.U
-          io.mem_mux := false.B
-          io.alu_op := 0.U
+          io.pip0.src1 := b_src1
+          io.pip0.src2 := b_src2
+          io.pip0.dest := 0.U
+          io.pip0.mem_mux := false.B
+          io.pip0.alu_op := 0.U
 
-          io.alu_d := true.B
+          io.pip0.alu_d := true.B
           jmp_state := true.B
           internal_stall := true.B // Prevent fetching the next instruction
         } .elsewhen (io.jmp_ready === true.B) {
@@ -253,7 +256,7 @@ class Fetch extends Module {
     }
     is ("b0000011".U) {
       // I type
-      io.dest_valid_1 := true.B
+      io.pip0.dest_valid_1 := true.B
       io.hu_src1 := i_src1
 
       // LB
@@ -262,34 +265,34 @@ class Fetch extends Module {
       // LBU
       // LHU
       src1 := i_src1
-      io.dest := i_dest
-      io.imm_mux := true.B
-      io.mem_mux := false.B
+      io.pip0.dest := i_dest
+      io.pip0.imm_mux := true.B
+      io.pip0.mem_mux := false.B
       val tmp = Wire(SInt(32.W))
       tmp := i_imm1.asSInt
-      io.imm := tmp.asUInt
+      io.pip0.imm := tmp.asUInt
       switch (s_funct3) {
         is ("b000".U) {
           // LB
-          io.mem_size := 0.U;
+          io.pip0.mem_size := 0.U;
         }
         is ("b001".U) {
           // LH
-          io.mem_size := 1.U;
+          io.pip0.mem_size := 1.U;
         }
         is ("b010".U) {
           // LW
-          io.mem_size := 2.U;
+          io.pip0.mem_size := 2.U;
         }
         is ("b100".U) {
           // LBU
-          io.mem_size := 0.U;
-          io.mem_sx := true.B;
+          io.pip0.mem_size := 0.U;
+          io.pip0.mem_sx := true.B;
         }
         is ("b101".U) {
           // LHU
-          io.mem_size := 1.U;
-          io.mem_sx := true.B;
+          io.pip0.mem_size := 1.U;
+          io.pip0.mem_sx := true.B;
         }
       }
     }
@@ -300,43 +303,43 @@ class Fetch extends Module {
 
       src1 := s_src1
       src2 := s_src2
-      io.dest := 0.U
-      io.imm_mux := true.B
-      io.mem_mux := false.B
+      io.pip0.dest := 0.U
+      io.pip0.imm_mux := true.B
+      io.pip0.mem_mux := false.B
       val tmp = Wire(SInt(32.W))
       tmp := Cat(s_imm1, s_imm2).asSInt
-      io.imm := tmp.asUInt
-      io.mem_store := true.B
+      io.pip0.imm := tmp.asUInt
+      io.pip0.mem_store := true.B
 
       switch (s_funct3) {
         is ("b000".U) {
           // SB
-          io.mem_size := 0.U;
+          io.pip0.mem_size := 0.U;
         }
         is ("b001".U) {
           // SH
-          io.mem_size := 1.U;
+          io.pip0.mem_size := 1.U;
         }
         is ("b010".U) {
           // SW
-          io.mem_size := 2.U;
+          io.pip0.mem_size := 2.U;
         }
       }
     }
     is ("b0010011".U) {
       // I type
-      io.dest_valid_0 := true.B
+      io.pip0.dest_valid_0 := true.B
       src1 := i_src1
-      io.dest := i_dest
-      io.imm_mux := true.B
-      io.mem_mux := true.B
+      io.pip0.dest := i_dest
+      io.pip0.imm_mux := true.B
+      io.pip0.mem_mux := true.B
 
       when (i_funct3 === "b001".U || i_funct3 === "b101".U) {
         // SLLI
         // SRLI
         // SRAI
-        io.imm := i_imm1(4, 0)
-        io.alu_op := Cat(i_imm1(10), i_funct3)
+        io.pip0.imm := i_imm1(4, 0)
+        io.pip0.alu_op := Cat(i_imm1(10), i_funct3)
       } .otherwise {
         // ADDI
         // SLTI
@@ -346,17 +349,17 @@ class Fetch extends Module {
         // ANDI
         val tmp = Wire(SInt(32.W))
         tmp := i_imm1.asSInt
-        io.imm := tmp.asUInt
-        io.alu_op := Cat(0.U(1.W), i_funct3)
+        io.pip0.imm := tmp.asUInt
+        io.pip0.alu_op := Cat(0.U(1.W), i_funct3)
       }
     }
     is ("b0110011".U) {
       // R type
-      io.dest_valid_0 := true.B
+      io.pip0.dest_valid_0 := true.B
       src1 := r_src1
       src2 := r_src2
-      io.dest := r_dest
-      io.mem_mux := true.B
+      io.pip0.dest := r_dest
+      io.pip0.mem_mux := true.B
 
       // ADD
       // SUB
@@ -367,7 +370,7 @@ class Fetch extends Module {
       // SRL
       // OR
       // AND
-      io.alu_op := Cat(r_funct7(5), r_funct3)
+      io.pip0.alu_op := Cat(r_funct7(5), r_funct3)
     }
     is ("b0001111".U) {
       // I type
@@ -384,19 +387,19 @@ class Fetch extends Module {
 
   // When stalling ensure to issue nops and to keep the HU clear
   when (io.stall) {
-    io.src1 := 0.U
-    io.src2 := 0.U
-    io.dest := 0.U
-    io.imm := 0.U
-    io.alu_op := 0.U
-    io.imm_mux := false.B
-    io.mem_mux := false.B
-    io.mem_size := 0.U
-    io.mem_sx := false.B
-    io.mem_store := false.B
-    io.alu_d := false.B
-    io.dest_valid_0 := false.B
-    io.dest_valid_1 := false.B
+    io.pip0.src1 := 0.U
+    io.pip0.src2 := 0.U
+    io.pip0.dest := 0.U
+    io.pip0.imm := 0.U
+    io.pip0.alu_op := 0.U
+    io.pip0.imm_mux := false.B
+    io.pip0.mem_mux := false.B
+    io.pip0.mem_size := 0.U
+    io.pip0.mem_sx := false.B
+    io.pip0.mem_store := false.B
+    io.pip0.alu_d := false.B
+    io.pip0.dest_valid_0 := false.B
+    io.pip0.dest_valid_1 := false.B
   }
 
   // Debug

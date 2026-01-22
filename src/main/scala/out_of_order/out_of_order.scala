@@ -1,10 +1,10 @@
-package reorder
+package out_of_order 
 
 import chisel3._
 import chisel3.util._
 import _root_.circt.stage.ChiselStage
 
-class Reorder extends Module {
+class OutOfOrder extends Module {
   val io = IO(new Bundle{
     // Icache
     val inst_in =     Input(UInt(32.W))
@@ -51,7 +51,7 @@ class Reorder extends Module {
 
   val fetch = Module(new Fetch)
   // val rf = Module(new RegisterFile(6, 2))
-  val renamer = Module(new Renamer(6, 2, 2))
+  val renamer = Module(new Scheduler(6, 2, 2))
   val alu = Module(new Alu)
   val mau = Module(new Mau)
   val hu = Module(new HazardUnit)
@@ -76,19 +76,19 @@ class Reorder extends Module {
 
   // If stall, don't read from fetch
   when (!hu.io.stall) {
-    rd_p0 := fetch.io.dest
-    r1_p0 := fetch.io.src1
-    r2_p0 := fetch.io.src2
-    op_p0 := fetch.io.alu_op
-    imm_p0 := fetch.io.imm
-    imm_mux_p0 := fetch.io.imm_mux
-    mem_mux_p0 := fetch.io.mem_mux
-    mem_size_p0 := fetch.io.mem_size
-    mem_sx_p0 := fetch.io.mem_sx
-    mem_store_p0 := fetch.io.mem_store
-    alu_d_p0 := fetch.io.alu_d
-    dest_valid_0_p0 := fetch.io.dest_valid_0
-    dest_valid_1_p0 := fetch.io.dest_valid_1
+    rd_p0 := fetch.io.pip0.dest
+    r1_p0 := fetch.io.pip0.src1
+    r2_p0 := fetch.io.pip0.src2
+    op_p0 := fetch.io.pip0.alu_op
+    imm_p0 := fetch.io.pip0.imm
+    imm_mux_p0 := fetch.io.pip0.imm_mux
+    mem_mux_p0 := fetch.io.pip0.mem_mux
+    mem_size_p0 := fetch.io.pip0.mem_size
+    mem_sx_p0 := fetch.io.pip0.mem_sx
+    mem_store_p0 := fetch.io.pip0.mem_store
+    alu_d_p0 := fetch.io.pip0.alu_d
+    dest_valid_0_p0 := fetch.io.pip0.dest_valid_0
+    dest_valid_1_p0 := fetch.io.pip0.dest_valid_1
   }
 
   // Connect p0 to rf and pipeline signals
