@@ -33,6 +33,9 @@ class Scheduler(rob_addr_bits: Int, pip_ports_count: Int, inputs: Int) extends M
   val rob = Module(new Rob(rob_addr_bits, pip_ports_count, inputs))
   io.buffer := rob.io.buffer
 
+  // TODO: make the 3 parametric
+  val rs = Module(new ReservationStation(3, rob_addr_bits, pip_ports_count))
+
   // Rob writeback
   rob.io.pip_ports := io.pip_ports
   rf.io.write_reg := rob.io.rf_dest
@@ -48,18 +51,22 @@ class Scheduler(rob_addr_bits: Int, pip_ports_count: Int, inputs: Int) extends M
   }
 
   // Stall
-  val make_request = io.dest_valid /*& io.dest =/= 0.U*/
+  val make_request = io.dest_valid
   val stall = Seq.tabulate(inputs)(i => i).foldLeft(false.B)((x, y) => x | (!rob.io.dests(y).valid & !rf.io.dests(y).valid)) |
               (!rob.io.rq_valid & make_request)
   io.stall := stall
   rf.io.stall := stall
 
   // Request entry
-  rob.io.rq_ready := !stall & make_request
+  rob.io.rq_ready := !stall & rs.io.rob_ready
 
   // Update the requested register
-  rf.io.dest := io.dest
-  rf.io.dest_valid := io.dest_valid
-  rf.io.new_name := rob.io.rq_addr
-  io.dest_addr := rob.io.rq_addr
+  // rf.io.dest := io.pip0.inst.dest
+  rf.io.dest_valid := rs.io.rf_dest_valid
+  rf.io.new_name := rs.io.rf_new_name
+  // io.dest_addr := rs.io.rf_dest_name
+
+  // Connect the reservation station
+  // rs.io.rf_name := ???
+  rs.io.pip_ports := io.pip_ports
 }

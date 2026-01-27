@@ -26,3 +26,11 @@ You can generate the verilog for the integrated in-order pipeline by executing:
 sbt run
 ```
 The resulting files will be placed in the `./builds/` direcotry.
+
+# Synthesis
+Here are some statistics for the synthesis of each core. These come from synthesizing the corse for the Ultra96 V2 embedded board.
+| Core | LUTs | Regisers |
+| --- | --- | --- |
+| `in_order` | 1605 | 1306 |
+| `reorder` | 5708 | 4115 |
+| `out_of_order` | - | - |
