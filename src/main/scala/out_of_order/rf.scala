@@ -31,6 +31,12 @@ class RegisterFile(rob_addr_bits: Int, inputs: Int) extends Module {
     val dest_valid =    Input(Bool())
     val new_name =      Input(UInt(rob_addr_bits.W))
 
+    // Reservation station
+    val rs_src1 =       Input(UInt(5.W))
+    val rs_src2 =       Input(UInt(5.W))
+    val rs_entry1 =     Output(new RfEntry(rob_addr_bits))
+    val rs_entry2 =     Output(new RfEntry(rob_addr_bits))
+
     // Debug io
     val registers = Output(Vec(32, new RfEntry(rob_addr_bits)))
   })
@@ -62,4 +68,7 @@ class RegisterFile(rob_addr_bits: Int, inputs: Int) extends Module {
     registers(io.dest).name := io.new_name
   }
 
+  // Reservation station ports
+  io.rs_entry1 := registers(io.rs_src1)
+  io.rs_entry2 := registers(io.rs_src2)
 }

@@ -9,15 +9,17 @@ class Scheduler(rob_addr_bits: Int, pip_ports_count: Int, inputs: Int) extends M
 
   val io = IO(new Bundle{
     val stall =     Output(Bool())
+    val valid_inst =Input(Bool())
+    val inst =      Input(new Control)
     
     // Request ports
-    val srcs =      Input(Vec(inputs, UInt(5.W)))
     val vals =      Output(Vec(inputs, UInt(32.W)))
 
     // Destination
-    val dest =      Input(UInt(5.W))
-    val dest_valid =Input(Bool())
     val dest_addr = Output(UInt(rob_addr_bits.W))
+
+    // Issue
+    val issue =     Output(new Control)
 
     // Update ports
     val pip_ports = Input(Vec(pip_ports_count, new RobPipPort(rob_addr_bits)))
@@ -43,30 +45,47 @@ class Scheduler(rob_addr_bits: Int, pip_ports_count: Int, inputs: Int) extends M
   rf.io.write_data.value := rob.io.rf_value
   rf.io.write_data.name := rob.io.rf_name
 
-  // Search for value
-  for (i <- 0 until inputs) {
-    rf.io.srcs(i) := io.srcs(i)
-    rob.io.srcs(i) := rf.io.dests(i).name
-    io.vals(i) := Mux(rf.io.dests(i).valid, rf.io.dests(i).value, rob.io.dests(i).value)
-  }
+  // Search for value (for the issued instruction)
+  // Pipeline the RS to the RF
+  val pip0 = RegNext(rs.io.issue)
+  rf.io.srcs(0) := pip0.src2
+  rob.io.srcs(0) := rf.io.dests(0).name
+  io.vals(0) := Mux(rf.io.dests(0).valid, rf.io.dests(0).value, rob.io.dests(0).value)
+
+  rf.io.srcs(1) := pip0.src1
+  rob.io.srcs(1) := rf.io.dests(1).name
+  io.vals(1) := Mux(rf.io.dests(1).valid, rf.io.dests(1).value, rob.io.dests(1).value)
+
+  io.dest_addr := RegNext(rs.io.dest_name, 0.U)
+  io.issue := pip0
 
   // Stall
-  val make_request = io.dest_valid
   val stall = Seq.tabulate(inputs)(i => i).foldLeft(false.B)((x, y) => x | (!rob.io.dests(y).valid & !rf.io.dests(y).valid)) |
-              (!rob.io.rq_valid & make_request)
+              (!rob.io.rq_valid /*& rs.io.rob_ready avoid combinational loop*/) | !rs.io.rs_ready
   io.stall := stall
   rf.io.stall := stall
 
   // Request entry
   rob.io.rq_ready := !stall & rs.io.rob_ready
+  rs.io.rob_addr := rob.io.rq_addr
+  rs.io.rob_valid := rob.io.rq_valid
 
   // Update the requested register
-  // rf.io.dest := io.pip0.inst.dest
+  rf.io.dest := rs.io.rf_dest
   rf.io.dest_valid := rs.io.rf_dest_valid
   rf.io.new_name := rs.io.rf_new_name
-  // io.dest_addr := rs.io.rf_dest_name
 
   // Connect the reservation station
-  // rs.io.rf_name := ???
+  rs.io.inst := io.inst
+  rs.io.valid_inst := io.valid_inst
+
+  rf.io.rs_src1 := rs.io.rf_src1
+  rf.io.rs_src2 := rs.io.rf_src2
+
+  rs.io.rf_name1 := rf.io.rs_entry1.name
+  rs.io.rf_valid1 := rf.io.rs_entry1.valid
+  rs.io.rf_name2 := rf.io.rs_entry2.name
+  rs.io.rf_valid2 := rf.io.rs_entry2.valid
+
   rs.io.pip_ports := io.pip_ports
 }

@@ -2,7 +2,7 @@ package out_of_order
 
 import chisel3._
 import chisel3.util._
-import _root_.circt.stage.ChiselStage
+import chisel3.experimental.BundleLiterals._
 
 class OutOfOrder extends Module {
   val io = IO(new Bundle{
@@ -51,7 +51,7 @@ class OutOfOrder extends Module {
 
   val fetch = Module(new Fetch)
   // val rf = Module(new RegisterFile(6, 2))
-  val renamer = Module(new Scheduler(6, 2, 2))
+  val scheduler = Module(new Scheduler(6, 2, 2))
   val alu = Module(new Alu)
   val mau = Module(new Mau)
   val hu = Module(new HazardUnit)
@@ -60,42 +60,31 @@ class OutOfOrder extends Module {
   fetch.io.inst_in := io.inst_in
   io.pc := fetch.io.pc
 
-  val rd_p0 = RegInit(0.U)
-  val r1_p0 = RegInit(0.U)
-  val r2_p0 = RegInit(0.U)
-  val op_p0 = RegInit(0.U)
-  val imm_p0 = RegInit(0.U)
-  val imm_mux_p0 = RegInit(false.B)
-  val mem_mux_p0 = RegInit(false.B)
-  val mem_size_p0 = RegInit(0.U)
-  val mem_sx_p0 = RegInit(false.B)
-  val mem_store_p0 = RegInit(false.B)
-  val alu_d_p0 = RegInit(false.B)
-  val dest_valid_0_p0 = RegInit(false.B)
-  val dest_valid_1_p0 = RegInit(false.B)
-
+  val pip_fetch = RegInit((new Control).Lit(
+    _.src1 -> 0.U,
+    _.src2 -> 0.U,
+    _.dest -> 0.U,
+    _.imm -> 0.U,
+    _.alu_op -> 0.U,
+    _.imm_mux -> false.B,
+    _.mem_mux -> false.B,
+    _.mem_size -> 0.U,
+    _.mem_sx -> false.B,
+    _.mem_store -> false.B,
+    _.alu_d -> false.B,
+    _.dest_valid_0 -> false.B,
+    _.dest_valid_1 -> false.B,
+  ))
+  
   // If stall, don't read from fetch
   when (!hu.io.stall) {
-    rd_p0 := fetch.io.pip0.dest
-    r1_p0 := fetch.io.pip0.src1
-    r2_p0 := fetch.io.pip0.src2
-    op_p0 := fetch.io.pip0.alu_op
-    imm_p0 := fetch.io.pip0.imm
-    imm_mux_p0 := fetch.io.pip0.imm_mux
-    mem_mux_p0 := fetch.io.pip0.mem_mux
-    mem_size_p0 := fetch.io.pip0.mem_size
-    mem_sx_p0 := fetch.io.pip0.mem_sx
-    mem_store_p0 := fetch.io.pip0.mem_store
-    alu_d_p0 := fetch.io.pip0.alu_d
-    dest_valid_0_p0 := fetch.io.pip0.dest_valid_0
-    dest_valid_1_p0 := fetch.io.pip0.dest_valid_1
+    pip_fetch := fetch.io.pip0
   }
 
   // Connect p0 to rf and pipeline signals
-  renamer.io.srcs(0) := r1_p0 
-  renamer.io.srcs(1) := r2_p0 
-  renamer.io.dest := rd_p0
-  renamer.io.dest_valid := dest_valid_0_p0 | dest_valid_1_p0
+  scheduler.io.inst := pip_fetch
+  scheduler.io.valid_inst := !hu.io.stall &
+    (pip_fetch.dest_valid_0 | pip_fetch.dest_valid_1)
 
   val rd_p1 = RegInit(0.U)
   val nd_p1 = RegInit(0.U)
@@ -114,20 +103,20 @@ class OutOfOrder extends Module {
 
   // If stall, inject boubble
   when (!hu.io.stall) {
-    rd_p1 := rd_p0
-    nd_p1 := renamer.io.dest_addr
-    s1_p1 := renamer.io.vals(0)
-    s2_p1 := renamer.io.vals(1)
-    imm_p1 := imm_p0
-    op_p1 := op_p0
-    imm_mux_p1 := imm_mux_p0
-    mem_mux_p1 := mem_mux_p0
-    mem_size_p1 := mem_size_p0
-    mem_sx_p1 := mem_sx_p0
-    mem_store_p1 := mem_store_p0
-    alu_d_p1 := alu_d_p0
-    dest_valid_0_p1 := dest_valid_0_p0
-    dest_valid_1_p1 := dest_valid_1_p0
+    rd_p1 := scheduler.io.issue.dest
+    nd_p1 := scheduler.io.dest_addr
+    s1_p1 := scheduler.io.vals(0)
+    s2_p1 := scheduler.io.vals(1)
+    imm_p1 := scheduler.io.issue.imm
+    op_p1 := scheduler.io.issue.alu_op
+    imm_mux_p1 := scheduler.io.issue.imm_mux
+    mem_mux_p1 := scheduler.io.issue.mem_mux
+    mem_size_p1 := scheduler.io.issue.mem_size
+    mem_sx_p1 := scheduler.io.issue.mem_sx
+    mem_store_p1 := scheduler.io.issue.mem_store
+    alu_d_p1 := scheduler.io.issue.alu_d
+    dest_valid_0_p1 := scheduler.io.issue.dest_valid_0
+    dest_valid_1_p1 := scheduler.io.issue.dest_valid_1
   } .otherwise {
     rd_p1 := 0.U
     nd_p1 := 0.U
@@ -154,10 +143,10 @@ class OutOfOrder extends Module {
   fetch.io.jmp_addr := alu.io.dest
   fetch.io.flags := alu.io.flags
 
-  renamer.io.pip_ports(0).value := alu.io.dest
-  renamer.io.pip_ports(0).dest := rd_p1
-  renamer.io.pip_ports(0).valid := dest_valid_0_p1
-  renamer.io.pip_ports(0).addr := nd_p1
+  scheduler.io.pip_ports(0).value := alu.io.dest
+  scheduler.io.pip_ports(0).dest := rd_p1
+  scheduler.io.pip_ports(0).valid := dest_valid_0_p1
+  scheduler.io.pip_ports(0).addr := nd_p1
 
   val s2_p2 = RegNext(s2_p1, 0.U)
   val res_p2 = RegNext(alu.io.dest, 0.U)
@@ -188,28 +177,28 @@ class OutOfOrder extends Module {
   mau.io.mem_sx_p2 := mem_sx_p2 
   mau.io.mem_store_p2 := mem_store_p2
 
-  renamer.io.pip_ports(1).value := Mux(mem_mux_p2, res_p2, mau.io.read_p2)
-  renamer.io.pip_ports(1).dest := rd_p2
-  renamer.io.pip_ports(1).valid := dest_valid_1_p2
-  renamer.io.pip_ports(1).addr := nd_p2
+  scheduler.io.pip_ports(1).value := Mux(mem_mux_p2, res_p2, mau.io.read_p2)
+  scheduler.io.pip_ports(1).dest := rd_p2
+  scheduler.io.pip_ports(1).valid := dest_valid_1_p2
+  scheduler.io.pip_ports(1).addr := nd_p2
 
   // Connect the hazard unit to the pipeline
   // TODO: remove the hazard unit, its no longer needed
-  hu.io.alu_p0 := alu_d_p0
-  hu.io.renamer := renamer.io.stall
+  hu.io.alu_p0 := scheduler.io.issue.alu_d
+  hu.io.scheduler := scheduler.io.stall
   fetch.io.stall := hu.io.stall_fetch
 
   // Debug signals
-  io.rf := renamer.io.registers
-  io.buffer := renamer.io.buffer
-  io.stall := renamer.io.stall
+  io.rf := scheduler.io.registers
+  io.buffer := scheduler.io.buffer
+  io.stall := scheduler.io.stall
 
-  io.s1_p0 := r1_p0
-  io.s2_p0 := r2_p0
-  io.rd_p0 := rd_p0
-  io.imm_p0 := imm_p0
-  io.alu_d_p0 := alu_d_p0
-  io.dest_valid_p0 := dest_valid_0_p0
+  io.s1_p0 := scheduler.io.issue.src1
+  io.s2_p0 := scheduler.io.issue.src2
+  io.rd_p0 := scheduler.io.issue.dest
+  io.imm_p0 := scheduler.io.issue.imm
+  io.alu_d_p0 := scheduler.io.issue.alu_d
+  io.dest_valid_p0 := scheduler.io.issue.dest_valid_0
 
   io.s1_p1 := s1_p1
   io.s2_p1 := s2_p1

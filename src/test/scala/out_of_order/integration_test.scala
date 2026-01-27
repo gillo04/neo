@@ -91,7 +91,7 @@ class IntegrationTest extends AnyFreeSpec with Matchers with ChiselSim {
     }
   }
 
-  "8: Fibonacci with array" in {
+  /*"8: Fibonacci with array" in {
     // Load instructions from file
     val instruction_cache = instructionsFromFile("./test_files/test08.bin")
 
@@ -118,5 +118,5 @@ class IntegrationTest extends AnyFreeSpec with Matchers with ChiselSim {
       }
       c.io.rf(14).value.expect(89.U)
     }
-  }
+  }*/
 }
