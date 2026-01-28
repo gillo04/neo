@@ -100,16 +100,16 @@ class RsTest extends AnyFreeSpec with Matchers with ChiselSim {
       // Check the istructions are issued in order, with the correct sinks
       c.io.pip_ports(1).valid.poke(false.B)
       c.io.valid_issue.expect(true.B)
-      c.io.issue.src1.expect(1.U)
-      c.io.issue.src2.expect(2.U)
-      c.io.issue.dest.expect(3.U)
+      c.io.issue.inst.src1.expect(1.U)
+      c.io.issue.inst.src2.expect(2.U)
+      c.io.issue.inst.dest.expect(3.U)
       c.io.dest_name.expect(13.U)
       c.clock.step()
 
       c.io.valid_issue.expect(true.B)
-      c.io.issue.src1.expect(1.U)
-      c.io.issue.src2.expect(2.U)
-      c.io.issue.dest.expect(3.U)
+      c.io.issue.inst.src1.expect(1.U)
+      c.io.issue.inst.src2.expect(2.U)
+      c.io.issue.inst.dest.expect(3.U)
       c.io.dest_name.expect(23.U)
       c.clock.step()
 
@@ -199,9 +199,9 @@ class RsTest extends AnyFreeSpec with Matchers with ChiselSim {
       // Check it is issued before the first
       c.io.pip_ports(1).valid.poke(false.B)
       c.io.valid_issue.expect(true.B)
-      c.io.issue.src1.expect(6.U)
-      c.io.issue.src2.expect(7.U)
-      c.io.issue.dest.expect(3.U)
+      c.io.issue.inst.src1.expect(6.U)
+      c.io.issue.inst.src2.expect(7.U)
+      c.io.issue.inst.dest.expect(3.U)
       c.io.dest_name.expect(33.U)
       c.clock.step()
       
@@ -251,9 +251,9 @@ class RsTest extends AnyFreeSpec with Matchers with ChiselSim {
       // Check it is issued
       c.io.pip_ports(1).valid.poke(false.B)
       c.io.valid_issue.expect(true.B)
-      c.io.issue.src1.expect(8.U)
-      c.io.issue.src2.expect(9.U)
-      c.io.issue.dest.expect(3.U)
+      c.io.issue.inst.src1.expect(8.U)
+      c.io.issue.inst.src2.expect(9.U)
+      c.io.issue.inst.dest.expect(3.U)
       c.io.dest_name.expect(43.U)
       c.clock.step()
     }

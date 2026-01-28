@@ -47,17 +47,45 @@ class Scheduler(rob_addr_bits: Int, pip_ports_count: Int, inputs: Int) extends M
 
   // Search for value (for the issued instruction)
   // Pipeline the RS to the RF
-  val pip0 = RegNext(rs.io.issue)
-  rf.io.srcs(0) := pip0.src2
-  rob.io.srcs(0) := rf.io.dests(0).name
-  io.vals(0) := Mux(rf.io.dests(0).valid, rf.io.dests(0).value, rob.io.dests(0).value)
+  val pip0 = RegNext(rs.io.issue,
+    (new RsEntry(rob_addr_bits)).Lit(
+      _.valid -> false.B,
+      _.s1_valid -> false.B,
+      _.s1_name -> 0.U,
+      _.s2_valid -> false.B,
+      _.s2_name -> 0.U,
+      _.d_name -> 0.U,
+      _.inst -> (new Control).Lit(
+        _.src1 -> 0.U,
+        _.src2 -> 0.U,
+        _.dest -> 0.U,
+        _.imm -> 0.U,
+        _.alu_op -> 0.U,
+        _.imm_mux -> false.B,
+        _.mem_mux -> false.B,
+        _.mem_size -> 0.U,
+        _.mem_sx -> false.B,
+        _.mem_store -> false.B,
+        _.alu_d -> false.B,
+        _.dest_valid_0 -> false.B,
+        _.dest_valid_1 -> false.B,
+      )
+    )
+  )
+  rf.io.srcs(0) := pip0.inst.src2
+  // rob.io.srcs(0) := rf.io.dests(0).name
+  // io.vals(0) := Mux(rf.io.dests(0).valid, rf.io.dests(0).value, rob.io.dests(0).value)
+  rob.io.srcs(0) := pip0.s1_name
+  io.vals(0) := rob.io.dests(0).value
 
-  rf.io.srcs(1) := pip0.src1
-  rob.io.srcs(1) := rf.io.dests(1).name
-  io.vals(1) := Mux(rf.io.dests(1).valid, rf.io.dests(1).value, rob.io.dests(1).value)
+  rf.io.srcs(1) := pip0.inst.src1
+  // rob.io.srcs(1) := rf.io.dests(1).name
+  // io.vals(1) := Mux(rf.io.dests(1).valid, rf.io.dests(1).value, rob.io.dests(1).value)
+  rob.io.srcs(1) := pip0.s2_name
+  io.vals(1) := rob.io.dests(1).value
 
   io.dest_addr := RegNext(rs.io.dest_name, 0.U)
-  io.issue := pip0
+  io.issue := pip0.inst
 
   // Stall
   val stall = Seq.tabulate(inputs)(i => i).foldLeft(false.B)((x, y) => x | (!rob.io.dests(y).valid & !rf.io.dests(y).valid)) |

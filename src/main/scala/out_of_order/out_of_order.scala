@@ -50,7 +50,6 @@ class OutOfOrder extends Module {
   })
 
   val fetch = Module(new Fetch)
-  // val rf = Module(new RegisterFile(6, 2))
   val scheduler = Module(new Scheduler(6, 2, 2))
   val alu = Module(new Alu)
   val mau = Module(new Mau)
@@ -102,7 +101,8 @@ class OutOfOrder extends Module {
   val dest_valid_1_p1 = RegInit(false.B)
 
   // If stall, inject boubble
-  when (!hu.io.stall) {
+  // when (!hu.io.stall) {
+  when (true.B) {
     rd_p1 := scheduler.io.issue.dest
     nd_p1 := scheduler.io.dest_addr
     s1_p1 := scheduler.io.vals(0)

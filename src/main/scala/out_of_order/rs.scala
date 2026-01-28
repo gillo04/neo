@@ -30,7 +30,7 @@ class ReservationStation(rs_addr_bits: Int, rob_addr_bits: Int, pip_ports_count:
     // Issue port
     val valid_issue =     Output(Bool())
     val dest_name =       Output(UInt(rob_addr_bits.W))
-    val issue =           Output(new Control)
+    val issue =           Output(new RsEntry(rob_addr_bits))
 
     // Rf port
     val rf_src1 =         Output(UInt(5.W))
@@ -118,21 +118,29 @@ class ReservationStation(rs_addr_bits: Int, rob_addr_bits: Int, pip_ports_count:
   // Issue instruction
   io.valid_issue := issue_entry_valid
   io.issue := Mux(issue_entry_valid,
-    buffer(issue_entry).inst,
-    (new Control).Lit(
-      _.src1 -> 0.U,
-      _.src2 -> 0.U,
-      _.dest -> 0.U,
-      _.imm -> 0.U,
-      _.alu_op -> 0.U,
-      _.imm_mux -> false.B,
-      _.mem_mux -> false.B,
-      _.mem_size -> 0.U,
-      _.mem_sx -> false.B,
-      _.mem_store -> false.B,
-      _.alu_d -> false.B,
-      _.dest_valid_0 -> false.B,
-      _.dest_valid_1 -> false.B,
+    buffer(issue_entry),
+    (new RsEntry(rob_addr_bits)).Lit(
+      _.valid -> false.B,
+      _.s1_valid -> false.B,
+      _.s1_name -> 0.U,
+      _.s2_valid -> false.B,
+      _.s2_name -> 0.U,
+      _.d_name -> 0.U,
+      _.inst -> (new Control).Lit(
+        _.src1 -> 0.U,
+        _.src2 -> 0.U,
+        _.dest -> 0.U,
+        _.imm -> 0.U,
+        _.alu_op -> 0.U,
+        _.imm_mux -> false.B,
+        _.mem_mux -> false.B,
+        _.mem_size -> 0.U,
+        _.mem_sx -> false.B,
+        _.mem_store -> false.B,
+        _.alu_d -> false.B,
+        _.dest_valid_0 -> false.B,
+        _.dest_valid_1 -> false.B,
+      )
     )
   )
   io.dest_name := buffer(issue_entry).d_name
