@@ -50,6 +50,9 @@ class ReservationStation(rs_addr_bits: Int, rob_addr_bits: Int, pip_ports_count:
 
     // Update ports
     val pip_ports =       Input(Vec(pip_ports_count, new RobPipPort(rob_addr_bits)))
+
+    // Debug
+    val buffer =          Output(Vec(buffer_size, new RsEntry(rob_addr_bits)))
   })
 
   val buffer = RegInit(VecInit(Seq.fill(buffer_size)((new RsEntry(rob_addr_bits)).Lit(
@@ -75,6 +78,7 @@ class ReservationStation(rs_addr_bits: Int, rob_addr_bits: Int, pip_ports_count:
       _.dest_valid_1 -> false.B,
     )
   ))))
+  io.buffer := buffer
 
   // Allocation logic
   // Priority decoder over the free entries

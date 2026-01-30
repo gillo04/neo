@@ -9,6 +9,7 @@ class Integration extends Module {
     // Debug
     val rf =          Output(Vec(32, new RfEntry(6)))
     val buffer =      Output(Vec(64, new RobEntry))
+    val rs =          Output(Vec(8, new RsEntry(6)))
     val pc =          Output(UInt(32.W))
     val addr  =       Input(UInt(10.W))
     val wdata =       Input(UInt(32.W))
@@ -38,8 +39,9 @@ class Integration extends Module {
   })
   val pipeline = Module(new OutOfOrder)
   io.rf := pipeline.io.rf
-  io.pc := pipeline.io.pc
+  io.pc := pipeline.io.this_pc
   io.buffer := pipeline.io.buffer
+  io.rs := pipeline.io.rs
   io.stall := pipeline.io.stall
 
   // Instruction cache

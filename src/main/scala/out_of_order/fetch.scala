@@ -26,8 +26,6 @@ class Fetch extends Module {
     val pc =          Output(UInt(32.W))
 
     // Hazard unit (dependencies)
-    val hu_src1 =     Output(UInt(5.W))
-    val hu_src2 =     Output(UInt(5.W))
     val stall =       Input(Bool())
 
     // Foreward signals
@@ -60,12 +58,14 @@ class Fetch extends Module {
   val internal_stall = WireInit(false.B)
   when (!io.stall & !internal_stall) {
     pc := next_pc + 4.U
-    buff_pc := next_pc
-    this_pc := buff_pc
-    when (!jmp_mux) {
-      inst := io.inst_in
-    } .otherwise {
-      inst := 0.U
+    when (jmp_state === false.B | io.jmp_ready) {
+      buff_pc := next_pc
+      this_pc := buff_pc
+      when (!jmp_mux) {
+        inst := io.inst_in
+      } .otherwise {
+        inst := 0.U
+      }
     }
 
     io.pc := next_pc
@@ -81,8 +81,6 @@ class Fetch extends Module {
   val src2 = Wire(UInt(5.W))
   src1 := 0.U
   src2 := 0.U
-  io.hu_src1 := src1
-  io.hu_src2 := src2
 
   io.pip0.src1 := src1
   io.pip0.src2 := src2
@@ -177,8 +175,6 @@ class Fetch extends Module {
     is ("b1100111".U) {
       // I type
       // JALR
-      io.hu_src1 := i_src1
-
       when (!io.stall) {   // When the dependency is solved
         when (jmp_state === false.B) {
           // Issue instruction to add rs1 to imm and stall the pipeline
@@ -187,12 +183,13 @@ class Fetch extends Module {
           io.pip0.imm := sx.asUInt
           io.pip0.src1 := i_src1
           io.pip0.dest := 0.U
+          io.pip0.dest_valid_0 := true.B
           io.pip0.imm_mux := true.B
           io.pip0.alu_op := 0.U
 
           io.pip0.alu_d := true.B
           jmp_state := true.B
-          internal_stall := true.B // Prevent fetching the next instructio.pip0n
+          internal_stall := true.B // Prevent fetching the next instruction
         } .elsewhen (io.jmp_ready === true.B) {
           // If jmp_ready, jmp_dest := jmp_addr
           jmp_dest := io.jmp_addr.asSInt
@@ -212,10 +209,6 @@ class Fetch extends Module {
     }
     is ("b1100011".U) {
       // B type
-      when(jmp_state === false.B) { // Is the when needed?
-        io.hu_src1 := b_src1
-        io.hu_src2 := b_src2
-      }
       jmp_dest := Cat(Seq(b_imm4, b_imm3, b_imm2, b_imm1, 0.U(1.W))).asSInt + this_pc.asSInt
 
       // BEQ
@@ -230,6 +223,7 @@ class Fetch extends Module {
           io.pip0.src1 := b_src1
           io.pip0.src2 := b_src2
           io.pip0.dest := 0.U
+          io.pip0.dest_valid_0 := true.B
           io.pip0.mem_mux := false.B
           io.pip0.alu_op := 0.U
 
@@ -257,7 +251,6 @@ class Fetch extends Module {
     is ("b0000011".U) {
       // I type
       io.pip0.dest_valid_1 := true.B
-      io.hu_src1 := i_src1
 
       // LB
       // LH
@@ -298,8 +291,6 @@ class Fetch extends Module {
     }
     is ("b0100011".U) {
       // S type
-      io.hu_src1 := s_src1
-      io.hu_src2 := s_src2
 
       src1 := s_src1
       src2 := s_src2
@@ -386,7 +377,7 @@ class Fetch extends Module {
   }
 
   // When stalling ensure to issue nops and to keep the HU clear
-  when (io.stall) {
+  when (io.stall || (jmp_state === true.B && !io.jmp_ready)) {
     io.pip0.src1 := 0.U
     io.pip0.src2 := 0.U
     io.pip0.dest := 0.U

@@ -11,5 +11,5 @@ _start:
   nop               # 16
 label:
   addi a0, a0, 5    # 20
-  mv a2, a0
+  mv a2, a0         # 24
   j .

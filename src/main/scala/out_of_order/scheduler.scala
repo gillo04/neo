@@ -5,7 +5,8 @@ import chisel3.util._
 import chisel3.experimental.BundleLiterals._
 
 class Scheduler(rob_addr_bits: Int, pip_ports_count: Int, inputs: Int) extends Module {
-  val buffer_size = math.pow(2, rob_addr_bits).toInt
+  val rob_buffer_size = math.pow(2, rob_addr_bits).toInt
+  val rs_buffer_size = math.pow(2, 3).toInt
 
   val io = IO(new Bundle{
     val stall =     Output(Bool())
@@ -26,7 +27,8 @@ class Scheduler(rob_addr_bits: Int, pip_ports_count: Int, inputs: Int) extends M
 
     // Debug io
     val registers = Output(Vec(32, new RfEntry(rob_addr_bits)))
-    val buffer =    Output(Vec(buffer_size, new RobEntry))
+    val buffer =    Output(Vec(rob_buffer_size, new RobEntry))
+    val rs =        Output(Vec(rs_buffer_size, new RsEntry(rob_addr_bits)))
   })
 
   val rf = Module(new RegisterFile(rob_addr_bits, inputs))
@@ -37,6 +39,7 @@ class Scheduler(rob_addr_bits: Int, pip_ports_count: Int, inputs: Int) extends M
 
   // TODO: make the 3 parametric
   val rs = Module(new ReservationStation(3, rob_addr_bits, pip_ports_count))
+  io.rs := rs.io.buffer
 
   // Rob writeback
   rob.io.pip_ports := io.pip_ports
@@ -72,17 +75,15 @@ class Scheduler(rob_addr_bits: Int, pip_ports_count: Int, inputs: Int) extends M
       )
     )
   )
-  rf.io.srcs(0) := pip0.inst.src2
-  // rob.io.srcs(0) := rf.io.dests(0).name
-  // io.vals(0) := Mux(rf.io.dests(0).valid, rf.io.dests(0).value, rob.io.dests(0).value)
+  rf.io.srcs(0) := pip0.inst.src1
   rob.io.srcs(0) := pip0.s1_name
-  io.vals(0) := rob.io.dests(0).value
+  io.vals(0) := Mux(rf.io.dests(0).valid, rf.io.dests(0).value, rob.io.dests(0).value)
+  // rob.io.srcs(0) := pip0.s1_name
+  // io.vals(0) := rob.io.dests(0).value
 
-  rf.io.srcs(1) := pip0.inst.src1
-  // rob.io.srcs(1) := rf.io.dests(1).name
-  // io.vals(1) := Mux(rf.io.dests(1).valid, rf.io.dests(1).value, rob.io.dests(1).value)
+  rf.io.srcs(1) := pip0.inst.src2
   rob.io.srcs(1) := pip0.s2_name
-  io.vals(1) := rob.io.dests(1).value
+  io.vals(1) := Mux(rf.io.dests(1).valid, rf.io.dests(1).value, rob.io.dests(1).value)
 
   io.dest_addr := RegNext(rs.io.dest_name, 0.U)
   io.issue := pip0.inst
@@ -109,11 +110,12 @@ class Scheduler(rob_addr_bits: Int, pip_ports_count: Int, inputs: Int) extends M
 
   rf.io.rs_src1 := rs.io.rf_src1
   rf.io.rs_src2 := rs.io.rf_src2
+  rob.io.rs_src1 := rf.io.rs_entry1.name
+  rob.io.rs_src2 := rf.io.rs_entry2.name
 
   rs.io.rf_name1 := rf.io.rs_entry1.name
-  rs.io.rf_valid1 := rf.io.rs_entry1.valid
+  rs.io.rf_valid1 := Mux(rf.io.rs_entry1.valid, true.B, rob.io.rs_valid1)
   rs.io.rf_name2 := rf.io.rs_entry2.name
-  rs.io.rf_valid2 := rf.io.rs_entry2.valid
-
+  rs.io.rf_valid2 := Mux(rf.io.rs_entry2.valid, true.B, rob.io.rs_valid2)
   rs.io.pip_ports := io.pip_ports
 }

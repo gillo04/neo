@@ -41,6 +41,12 @@ class Rob(addr_bits: Int, pip_ports_count: Int, inputs: Int) extends Module {
     val rf_value =  Output(UInt(32.W))
     val rf_name =   Output(UInt(addr_bits.W))
 
+    // Reservation station
+    val rs_src1 =   Input(UInt(addr_bits.W))
+    val rs_src2 =   Input(UInt(addr_bits.W))
+    val rs_valid1 = Output(Bool())
+    val rs_valid2 = Output(Bool())
+
     // Pipeline ports
     val pip_ports = Input(Vec(pip_ports_count, new RobPipPort(addr_bits)))
 
@@ -92,4 +98,8 @@ class Rob(addr_bits: Int, pip_ports_count: Int, inputs: Int) extends Module {
   for (i <- 0 until inputs) {
     io.dests(i) := buffer(io.srcs(i))
   }
+
+  // Reservation station
+  io.rs_valid1 := buffer(io.rs_src1).valid
+  io.rs_valid2 := buffer(io.rs_src2).valid
 }

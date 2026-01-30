@@ -20,6 +20,7 @@ class OutOfOrder extends Module {
     // Debug
     val rf =          Output(Vec(32, new RfEntry(6)))
     val buffer =      Output(Vec(64, new RobEntry))
+    val rs =          Output(Vec(8, new RsEntry(6)))
     val stall =       Output(Bool())
 
     val s1_p0 =       Output(UInt(5.W))
@@ -83,7 +84,7 @@ class OutOfOrder extends Module {
   // Connect p0 to rf and pipeline signals
   scheduler.io.inst := pip_fetch
   scheduler.io.valid_inst := !hu.io.stall &
-    (pip_fetch.dest_valid_0 | pip_fetch.dest_valid_1)
+    (pip_fetch.dest_valid_0 | pip_fetch.dest_valid_1 | pip_fetch.alu_d)
 
   val rd_p1 = RegInit(0.U)
   val nd_p1 = RegInit(0.U)
@@ -102,7 +103,7 @@ class OutOfOrder extends Module {
 
   // If stall, inject boubble
   // when (!hu.io.stall) {
-  when (true.B) {
+  when (scheduler.io.issue.dest_valid_0 | scheduler.io.issue.dest_valid_1 | scheduler.io.issue.alu_d) {
     rd_p1 := scheduler.io.issue.dest
     nd_p1 := scheduler.io.dest_addr
     s1_p1 := scheduler.io.vals(0)
@@ -191,6 +192,7 @@ class OutOfOrder extends Module {
   // Debug signals
   io.rf := scheduler.io.registers
   io.buffer := scheduler.io.buffer
+  io.rs := scheduler.io.rs
   io.stall := scheduler.io.stall
 
   io.s1_p0 := scheduler.io.issue.src1
