@@ -73,7 +73,7 @@ class IntegrationTest extends AnyFreeSpec with Matchers with ChiselSim {
     }
   }
 
-  /*"0: Addition with dependencies" in {
+  "0: Addition with dependencies" in {
     // Load instructions from file
     val instruction_cache = instructionsFromFile("./test_files/test00.bin")
 
@@ -306,7 +306,7 @@ class IntegrationTest extends AnyFreeSpec with Matchers with ChiselSim {
       }
       c.io.rf(14).value.expect(89.U)
     }
-  }*/
+  }
 
   "8: Fibonacci with array" in {
     // Load instructions from file
@@ -332,6 +332,10 @@ class IntegrationTest extends AnyFreeSpec with Matchers with ChiselSim {
       while (c.io.rf(14).value.peek().litValue == 0) {
         // Step the clock
         c.clock.step()
+        // inspectData(c, Seq(0, 10, 11, 12, 13, 14), Seq(0, 1, 2, 3, 4, 5, 6, 7, 8, 9))
+        // inspectRs(c, Seq(0, 1, 2, 3))
+        // inspectPipeline(c)
+        // println("====================================================")
       }
       c.io.rf(14).value.expect(89.U)
     }

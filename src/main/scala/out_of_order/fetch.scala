@@ -291,6 +291,7 @@ class Fetch extends Module {
     }
     is ("b0100011".U) {
       // S type
+      io.pip0.dest_valid_1 := true.B
 
       src1 := s_src1
       src2 := s_src2

@@ -97,11 +97,13 @@ class ReservationStation(rs_addr_bits: Int, rob_addr_bits: Int, pip_ports_count:
     buffer(free_entry).s1_valid := (
         io.rf_valid1 |                                                                      // Either its valid in the renamer
         io.pip_ports.foldLeft(false.B)((x, y) => x | (y.valid & y.addr === io.rf_name1))    // Or it will be valid on the next cycle
-      ) & (buffer(issue_entry).inst.dest =/= io.inst.src1 | !issue_entry_valid)             // And always it mustn't be invalidated by the outgoing instruction
+      ) & (buffer(issue_entry).inst.dest =/= io.inst.src1 | !issue_entry_valid) |           // And always it mustn't be invalidated by the outgoing instruction
+      io.inst.src1 === 0.U
     buffer(free_entry).s2_valid := (
         io.rf_valid2 |                                                                      // Either its valid in the renamer
         io.pip_ports.foldLeft(false.B)((x, y) => x | (y.valid & y.addr === io.rf_name2))    // Or it will be valid on the next cycle
-      ) & (buffer(issue_entry).inst.dest =/= io.inst.src2 | !issue_entry_valid)             // And always it mustn't be invalidated by the outgoing instruction
+      ) & (buffer(issue_entry).inst.dest =/= io.inst.src2 | !issue_entry_valid) |           // And always it mustn't be invalidated by the outgoing instruction
+      io.inst.src2 === 0.U
     buffer(free_entry).s1_name := io.rf_name1
     buffer(free_entry).s2_name := io.rf_name2
     buffer(free_entry).d_name := io.rob_addr

@@ -1,12 +1,12 @@
 # Neo
-Neo aims at being a RISC-V out-of-order soft core written in Chisel.
+Neo is a RISC-V out-of-order soft core written in Chisel.
 
 # Project status
-At the moment, there is a working in-order pipeline both with and without register renaming. The current implementations can execute all RV32I instructions, except for `FENCE`, `FENCE.TSO`, `PAUSE`, `ECALL` and `EBREAK`.
+At the moment, there are three working cores: a regular in-order pipeline, an in-order pipeline with register renaming and an out-of-order pipeline. The current implementations can execute all RV32I instructions, except for `FENCE`, `FENCE.TSO`, `PAUSE`, `ECALL` and `EBREAK`. It must be noted the out-of-order pipeline does not implement load-store queues.
 The general timeline looks as follows:
 - [x] Implement an in-order pipeline
 - [x] Implement a reorder buffer and make a pipeline with register renaming
-- [ ] Implement reservation stations and make an out-of-order pipeline
+- [x] Implement reservation stations and make an out-of-order pipeline
 - [ ] Implement brach prediction. Probably a simple global-history branch predictor
 - [ ] Implement caching
 - [ ] Implement load-store queues
@@ -20,8 +20,9 @@ You may see some tests failing due to them accessing the same test binary at the
 ```
 sbt "testOnly in_order.*"
 sbt "testOnly reorder.*"
+sbt "testOnly out_of_order.*"
 ``` 
-You can generate the verilog for the integrated in-order pipeline by executing:
+You can generate the verilog for the integrated pipelines by executing:
 ``` 
 sbt run
 ```
