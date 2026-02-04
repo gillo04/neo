@@ -24,4 +24,5 @@ loop:
   bgt a1, x0, loop
 
   lw a4, 4(a0)
+  mv x31, a4
   j .

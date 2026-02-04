@@ -4,7 +4,7 @@ import chisel3._
 import chisel3.util._
 import chisel3.experimental.BundleLiterals._
 
-class OutOfOrder extends Module {
+class OutOfOrder(debug: Boolean) extends Module {
   val io = IO(new Bundle{
     // Icache
     val inst_in =     Input(UInt(32.W))
@@ -18,36 +18,36 @@ class OutOfOrder extends Module {
     val write_en =    Output(Bool())
 
     // Debug
-    val rf =          Output(Vec(32, new RfEntry(6)))
-    val buffer =      Output(Vec(64, new RobEntry))
-    val rs =          Output(Vec(8, new RsEntry(6)))
-    val stall =       Output(Bool())
+    val debug_sig = if (debug) Some(new Bundle {
+      val rf =          Output(Vec(32, new RfEntry(6)))
+      val buffer =      Output(Vec(64, new RobEntry))
+      val rs =          Output(Vec(8, new RsEntry(6)))
+      val stall =       Output(Bool())
 
-    val s1_p0 =       Output(UInt(5.W))
-    val s2_p0 =       Output(UInt(5.W))
-    val rd_p0 =       Output(UInt(5.W))
-    val imm_p0 =      Output(UInt(32.W))
-    val alu_d_p0 =    Output(Bool())
-    val dest_valid_p0 = Output(Bool())
+      val s1_p0 =       Output(UInt(5.W))
+      val s2_p0 =       Output(UInt(5.W))
+      val rd_p0 =       Output(UInt(5.W))
+      val imm_p0 =      Output(UInt(32.W))
+      val alu_d_p0 =    Output(Bool())
+      val dest_valid_p0 = Output(Bool())
 
-    val s1_p1 =       Output(UInt(32.W))
-    val s2_p1 =       Output(UInt(32.W))
-    val rd_p1 =       Output(UInt(5.W))
-    val imm_p1 =      Output(UInt(32.W))
-    val alu_d_p1 =    Output(Bool())
-    val dest_valid_p1 = Output(Bool())
+      val s1_p1 =       Output(UInt(32.W))
+      val s2_p1 =       Output(UInt(32.W))
+      val rd_p1 =       Output(UInt(5.W))
+      val imm_p1 =      Output(UInt(32.W))
+      val alu_d_p1 =    Output(Bool())
+      val dest_valid_p1 = Output(Bool())
 
-    val s1_p2 =       Output(UInt(32.W))
-    val s2_p2 =       Output(UInt(32.W))
-    val rd_p2 =       Output(UInt(5.W))
-    val imm_p2 =      Output(UInt(32.W))
-    val alu_d_p2 =    Output(Bool())
-    val dest_valid_p2 = Output(Bool())
+      val s1_p2 =       Output(UInt(32.W))
+      val s2_p2 =       Output(UInt(32.W))
+      val rd_p2 =       Output(UInt(5.W))
+      val imm_p2 =      Output(UInt(32.W))
+      val alu_d_p2 =    Output(Bool())
+      val dest_valid_p2 = Output(Bool())
 
-    val this_pc =     Output(UInt(32.W))
-    val this_inst =   Output(UInt(32.W))
-
-    val debug =       Output(UInt(32.W))
+      val this_pc =     Output(UInt(32.W))
+      val this_inst =   Output(UInt(32.W))
+    }) else None
   })
 
   val fetch = Module(new Fetch)
@@ -190,34 +190,35 @@ class OutOfOrder extends Module {
   fetch.io.stall := hu.io.stall_fetch
 
   // Debug signals
-  io.rf := scheduler.io.registers
-  io.buffer := scheduler.io.buffer
-  io.rs := scheduler.io.rs
-  io.stall := scheduler.io.stall
+  if (debug) {
+    io.debug_sig.get.rf := scheduler.io.registers
+    io.debug_sig.get.buffer := scheduler.io.buffer
+    io.debug_sig.get.rs := scheduler.io.rs
+    io.debug_sig.get.stall := scheduler.io.stall
 
-  io.s1_p0 := scheduler.io.issue.src1
-  io.s2_p0 := scheduler.io.issue.src2
-  io.rd_p0 := scheduler.io.issue.dest
-  io.imm_p0 := scheduler.io.issue.imm
-  io.alu_d_p0 := scheduler.io.issue.alu_d
-  io.dest_valid_p0 := scheduler.io.issue.dest_valid_0
+    io.debug_sig.get.s1_p0 := scheduler.io.issue.src1
+    io.debug_sig.get.s2_p0 := scheduler.io.issue.src2
+    io.debug_sig.get.rd_p0 := scheduler.io.issue.dest
+    io.debug_sig.get.imm_p0 := scheduler.io.issue.imm
+    io.debug_sig.get.alu_d_p0 := scheduler.io.issue.alu_d
+    io.debug_sig.get.dest_valid_p0 := scheduler.io.issue.dest_valid_0
 
-  io.s1_p1 := s1_p1
-  io.s2_p1 := s2_p1
-  io.rd_p1 := rd_p1
-  io.imm_p1 := imm_p1
-  io.alu_d_p1 := alu_d_p1
-  io.dest_valid_p1 := dest_valid_0_p1
+    io.debug_sig.get.s1_p1 := s1_p1
+    io.debug_sig.get.s2_p1 := s2_p1
+    io.debug_sig.get.rd_p1 := rd_p1
+    io.debug_sig.get.imm_p1 := imm_p1
+    io.debug_sig.get.alu_d_p1 := alu_d_p1
+    io.debug_sig.get.dest_valid_p1 := dest_valid_0_p1
 
-  io.s1_p2 := 0.U
-  io.s2_p2 := 0.U 
-  io.rd_p2 := rd_p2
-  io.imm_p2 := 0.U
-  io.alu_d_p2 := false.B 
-  io.dest_valid_p2 := dest_valid_1_p2
+    io.debug_sig.get.s1_p2 := 0.U
+    io.debug_sig.get.s2_p2 := 0.U 
+    io.debug_sig.get.rd_p2 := rd_p2
+    io.debug_sig.get.imm_p2 := 0.U
+    io.debug_sig.get.alu_d_p2 := false.B 
+    io.debug_sig.get.dest_valid_p2 := dest_valid_1_p2
 
-  io.debug := alu_d_p1
-  io.stall := hu.io.stall
-  io.this_pc := fetch.io.this_pc
-  io.this_inst := fetch.io.this_inst
+    io.debug_sig.get.stall := hu.io.stall
+    io.debug_sig.get.this_pc := fetch.io.this_pc
+    io.debug_sig.get.this_inst := fetch.io.this_inst
+  }
 }

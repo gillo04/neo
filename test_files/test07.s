@@ -19,4 +19,5 @@ loop:
   bgt a2, x0, loop        # 32
 
   mv a4, a1
+  mv x31, a1
   j .

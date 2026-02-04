@@ -99,6 +99,7 @@ class ReservationStation(rs_addr_bits: Int, rob_addr_bits: Int, pip_ports_count:
         io.pip_ports.foldLeft(false.B)((x, y) => x | (y.valid & y.addr === io.rf_name1))    // Or it will be valid on the next cycle
       ) & (buffer(issue_entry).inst.dest =/= io.inst.src1 | !issue_entry_valid) |           // And always it mustn't be invalidated by the outgoing instruction
       io.inst.src1 === 0.U
+
     buffer(free_entry).s2_valid := (
         io.rf_valid2 |                                                                      // Either its valid in the renamer
         io.pip_ports.foldLeft(false.B)((x, y) => x | (y.valid & y.addr === io.rf_name2))    // Or it will be valid on the next cycle
@@ -112,11 +113,11 @@ class ReservationStation(rs_addr_bits: Int, rob_addr_bits: Int, pip_ports_count:
 
   // Update validity
   for (i <- 0 until buffer_size) {
-    when (io.pip_ports.foldLeft(false.B)((x, y) => x | (y.addr === buffer(i).s1_name & y.valid))) {
+    when (io.pip_ports.foldLeft(false.B)((x, y) => x | (y.addr === buffer(i).s1_name & y.valid)) & buffer(i).valid) {
       buffer(i).s1_valid := true.B
     }
 
-    when (io.pip_ports.foldLeft(false.B)((x, y) => x | (y.addr === buffer(i).s2_name & y.valid))) {
+    when (io.pip_ports.foldLeft(false.B)((x, y) => x | (y.addr === buffer(i).s2_name & y.valid)) & buffer(i).valid) {
       buffer(i).s2_valid := true.B
     }
   }

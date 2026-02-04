@@ -346,6 +346,7 @@ class Fetch extends Module {
       }
     }
     is ("b0110011".U) {
+      printf(p"ADD_DEST: ${r_dest}\n")
       // R type
       io.pip0.dest_valid_0 := true.B
       src1 := r_src1
